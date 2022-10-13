@@ -92,7 +92,7 @@ FONTS = pg.font.Font((os.path.join(FONT_PATH, hp)), 54)
 FONTM = pg.font.Font((os.path.join(FONT_PATH, hp)), 90)
 FONTL = pg.font.Font((os.path.join(FONT_PATH, hp)), 120)
 
-RESOLUTION = WIDTH, HEIGHT = (500, 500)
+RESOLUTION = WIDTH, HEIGHT = (960, 540)
 SCREEN = pg.display.set_mode(RESOLUTION)
 ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
 pg.display.set_icon(ICON)
@@ -101,7 +101,7 @@ SCREEN_SURF = pg.Surface(RESOLUTION)
 CLOCK = pg.time.Clock()
 TIMER = time.time()
 elapsed_time = time.time() - TIMER
-etime_ost = OnScreenText(str(elapsed_time), FONTS, (420, 450), color=(240, 240, 250))
+etime_ost = OnScreenText(str(elapsed_time), FONTS, (WIDTH - 80, HEIGHT - 35), color=(240, 240, 250))
 
 SPACE = pm.Space()
 SPACE.gravity = (-10, 10)
