@@ -112,13 +112,6 @@ rocket_tail = [STARTING_POSITION]
 while True:
     CLOCK.tick(60)
 
-    '''
-    print(elapsed_time)
-    SCREEN.fill(pg.Color(int((elapsed_time * 50) % 255),
-    int((elapsed_time * 50 + 50) % 255),
-    int((elapsed_time * 50 + 100) % 255)))
-    '''
-
     for event in pg.event.get():
         if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 sys.exit()
