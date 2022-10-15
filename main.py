@@ -1,4 +1,3 @@
-from tkinter import Scale
 import pygame as pg
 import pymunk as pm
 import math
@@ -134,7 +133,7 @@ etime_ost = OnScreenText(str(elapsed_time), FONTS, (W - 80, H - 35), color=(240,
 SPACE = pm.Space()
 SPACE.gravity = (0, 0)
 
-GRAVITY_STRENGTH = 5e6
+GRAVITY_STRENGTH = 5e1
 AU = 149.6e6 * 1000
 SCALE = 250 / AU # 1 AU = 100px
 TIMESTEP = 3600 # 1 hour
@@ -159,9 +158,6 @@ while True:
             match event.key:
                 case pg.K_ESCAPE:
                     sys.exit()
-                case pg.K_SPACE:
-                    if R1.body.velocity == 0: R1.body.velocity = 200
-                    else:                     R1.body.velocity = 0
 
     SPACE.step(1/50)
 
