@@ -5,42 +5,81 @@ import time
 import sys
 import os
 
+def set_magnitude(vec, nm):
+    nv = normalize(vec)
+    return (nv[0] * nm, nv[1] * nm)
 
-def planet_gravity(body, gravity, damping, dt):
-    sq_dist = body.position.get_dist_sqrd((480, 540))
-    g = ( (body.position - pm.Vec2d(480, 450)) * -GRAVITY_STRENGTH / (sq_dist * math.sqrt(sq_dist)) )
-    pm.Body.update_velocity(body, g, damping, dt)
+def get_magnitude(a):
+    return math.sqrt(pow(a.x,2) + pow(a.y,2))
 
+def normalize(a):
+    mg = get_magnitude(a)
+    if mg == 0: return (0, 0)
+    return (a.x / mg, a.y / mg)
 
 class Planet:
-    def __init__(self, position, radius, mass, color):
-        self.position = position
-        self.radius = radius
-        self.mass = mass
+    def __init__(self, position, radius, mass, velocity, color, body_type=pm.Body.DYNAMIC):
+        self.body = pm.Body(mass, 0, body_type=body_type)
+        self.body.position = position
         self.color = color
 
-    def draw(self):
-        x = self.position[0] * SCALE + W/2
-        y = self.position[1] * SCALE + H/2
-        pg.draw.circle(SCREEN, self.color, (x, y), self.radius)
+        self.velocity = (velocity[0] * TIMESTEP * SCALE, velocity[1] * TIMESTEP * SCALE)
+        self.acceleration = (0, 0)
 
-class Rocket:
-    def __init__(self, starting_position, velocity, mass, color):
-        self.body = pm.Body(mass, velocity, body_type=pm.Body.DYNAMIC)
-        self.body.position = starting_position
-        self.body.velocity_func = planet_gravity
-        self.color = color
-        self.shape = pm.Segment(self.body, (-1, 0), (1, 0), radius=2)
-        self.shape.mass = 1
-        self.shape.friction = 0.7
-        self.shape.elasticity = 0
+        self.shape = pm.Circle(self.body, radius * SCALE)
+        self.shape.mass = mass * MASS_SCALE
+
         SPACE.add(self.body, self.shape)
 
-        r = self.body.position.get_distance((480, 540))
-        v = G * (mass * EARTH.mass) / (r*r) + G * (mass * MOON.mass) / (r * r)
-        self.body.velocity = (self.body.position - pm.Vec2d(480, 540)).perpendicular() * v
-        self.body.angular_velocity = v
-        self.body.angle = math.atan2(self.body.position.y, self.body.position.x)
+    def draw(self):
+        pg.draw.circle(SCREEN, self.color, self.body.position, self.shape.radius)
+
+    def update(self):
+        if self.body.body_type == pm.Body.DYNAMIC:
+            for p in planets:
+                r = self.body.position.get_distance(p.body.position)
+                if r == 0 or self == p: continue
+                print(f'distance: {r}')
+
+                v = -(self.shape.mass * p.shape.mass) / (r * r) * 10e5
+                # print(f'{v}: {self.shape.mass}, {p.shape.mass}')
+                m = v / self.shape.mass
+                sm = set_magnitude((self.body.position - p.body.position), m)
+                self.acceleration = (self.acceleration[0] + sm[0], self.acceleration[1] + sm[1])
+                print(f'this is acceleration: {self.acceleration} and magnitude: {sm}')
+
+            self.velocity = (self.velocity[0] + self.acceleration[0] * dt, self.velocity[1] + self.acceleration[1] * dt)
+            self.body.position = (self.body.position.x + self.velocity[0] * dt, self.body.position.y + self.velocity[1] * dt)
+            print(f'velocity: {self.velocity} at planet: {self.body.position}')
+
+
+class Rocket:
+    def __init__(self, starting_position, velocity , mass, color, angle):
+        self.body = pm.Body(mass, 0, body_type=pm.Body.DYNAMIC)
+        self.body.position = starting_position
+        self.color = color
+
+        self.velocity = velocity
+        self.acceleration = (0, 0)
+        self.angle = angle # in pi
+
+        self.shape = pm.Segment(self.body, (-1, 0), (1, 0), radius=2)
+        self.shape.mass = mass * MASS_SCALE
+
+        SPACE.add(self.body, self.shape)
+
+    def draw(self):
+        pg.draw.circle(SCREEN, self.color, self.body.position, self.shape.radius)
+
+    def update(self):
+        for p in planets:
+            r = self.body.position.get_distance(p.body.position)
+            if r == 0 or self.body.position.x == 0: continue
+            v = G * (self.shape.mass * p.shape.mass) / (r * r)
+            m = v / self.shape.mass
+            self.acceleration += set_magnitude((self.body.position - p.body.position), m)
+        self.velocity = (self.velocity[0] + self.acceleration[0] * dt, self.velocity[1] + self.acceleration[1] * dt)
+        self.body.position = (self.body.position.x + self.velocity[0] * dt, self.body.position.y + self.velocity[1] * dt)
 
 
 class OnScreenText:
@@ -59,7 +98,8 @@ class OnScreenText:
     def blit(self):
         SCREEN.blit(self.rendered_text, self.rect)
 
-    def update(self):
+    def update(self, text):
+        self.text = text
         self.rendered_text = self.fontsize.render(self.text, self.antial, self.color)
         if self.center == True: self.rect = self.rendered_text.get_rect(center=self.coords)
         else: self.rect = self.coords
@@ -85,10 +125,8 @@ class Button:
 
                 SCREEN.blit(
                     text,
-                    (
-                    self.x + (self.width/2 - text.get_width()/2),
-                    self.y + (self.height/(len(lines) + 1) * i - text.get_height()/2)
-                    )
+                    (self.x + (self.width/2 - text.get_width()/2),
+                     self.y + (self.height/(len(lines) + 1) * i - text.get_height()/2))
                     )
 
     def is_over(self, pos):
@@ -119,7 +157,7 @@ FONTS = pg.font.Font((os.path.join(FONT_PATH, hp)), 54)
 FONTM = pg.font.Font((os.path.join(FONT_PATH, hp)), 90)
 FONTL = pg.font.Font((os.path.join(FONT_PATH, hp)), 120)
 
-RESOLUTION = W, H = (960, 540)
+RESOLUTION = W, H = (1500, 900)
 SCREEN = pg.display.set_mode(RESOLUTION)
 SCREEN_SURF = pg.Surface(RESOLUTION)
 ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
@@ -133,23 +171,27 @@ etime_ost = OnScreenText(str(elapsed_time), FONTS, (W - 80, H - 35), color=(240,
 SPACE = pm.Space()
 SPACE.gravity = (0, 0)
 
-GRAVITY_STRENGTH = 5e1
-AU = 149.6e6 * 1000
-SCALE = 250 / AU # 1 AU = 100px
-TIMESTEP = 3600 # 1 hour
+SCALE = 1/1000
+MASS_SCALE = 1e-24
+TIMESTEP = 60 # 1 minute
+SPEED = 1
+G = 6.67e-11
 
-G = 6.67 * 10**-11
-EARTH = Planet((W/2, H/2), 10, 6 * 10**24, (100, 255, 100)) # multiply everything by 10
-MOON = Planet((W/2 + 384, H/2), 3, 7.3 * 10**22, (100, 100, 100)) # 384
+EARTH = Planet((W/2,                  H/2), 6371, 5.97 * 10**24, (0, 0), (100, 200, 255), body_type=pm.Body.STATIC)
+MOON =  Planet((W/2 - 384400 * SCALE, H/2), 1737, 7.34 * 10**22, (0, 10000), (200, 200, 200)) # 384,000 km from earth
 planets = [EARTH, MOON]
 
-STARTING_POSITION = (100, 400)
-R1 = Rocket(STARTING_POSITION, 200, 5, (200, 180, 0))
+STARTING_POSITION = (EARTH.body.position[0] + EARTH.shape.radius + 10, EARTH.body.position[1])
+# R1 = Rocket(STARTING_POSITION, (0, 0), 200, (200, 180, 0), 0)
 rocket_tail = [STARTING_POSITION]
 
+last_ticks = 0
+count_ticks = 0
 
 while True:
     CLOCK.tick(60)
+
+    dt = CLOCK.tick(60) / 1000
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -164,17 +206,20 @@ while True:
     SCREEN.fill((0, 0, 20))
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
-    for planet in planets:
-        planet.draw()
+    # R1.update()
 
-    rocket_tail.append(R1.body.position)
-    pg.draw.lines(SCREEN, R1.color, False, rocket_tail)
+    for p in planets:
+        p.update()
 
-    pg.draw.circle(SCREEN, R1.color, R1.body.position, 2)
+    for p in planets:
+        p.draw()
+
+    # rocket_tail.append(R1.body.position)
+    # pg.draw.lines(SCREEN, R1.color, False, rocket_tail)
+    # R1.draw()
 
     elapsed_time = time.time() - TIMER
-    etime_ost.text = f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}'
-    etime_ost.update()
+    etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
     etime_ost.blit()
 
     pg.display.update()
