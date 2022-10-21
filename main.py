@@ -248,15 +248,11 @@ while True:
     SCREEN.fill((0, 0, 20))
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
-    R1.update()
-
     for p in planets:
         p.update()
-
-    for p in planets:
         p.draw()
 
-
+    R1.update()
     R1.draw()
 
     elapsed_time = time.time() - TIMER
