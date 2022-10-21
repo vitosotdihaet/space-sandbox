@@ -10,7 +10,7 @@ def set_magnitude(vec, nm):
     return (nv[0] * nm, nv[1] * nm)
 
 def get_magnitude(a):
-    return math.sqrt(pow(a.x,2) + pow(a.y,2))
+    return math.sqrt(a.x * a.x + a.y * a.y)
 
 def normalize(a):
     mg = get_magnitude(a)
@@ -23,7 +23,7 @@ class Planet:
         self.body.position = position
         self.color = color
 
-        self.velocity = (velocity[0] * TIMESTEP * SCALE, velocity[1] * TIMESTEP * SCALE)
+        self.velocity = (velocity[0] * SCALE * TIMESTEP, velocity[1] * SCALE * TIMESTEP)
         self.acceleration = (0, 0)
 
         self.shape = pm.Circle(self.body, radius * SCALE)
@@ -32,25 +32,28 @@ class Planet:
         SPACE.add(self.body, self.shape)
 
     def draw(self):
+        # pg.draw.circle(SCREEN, self.color, (self.body.position[0]/100 + W/2, self.body.position[1]/100 + H/2), self.shape.radius)
         pg.draw.circle(SCREEN, self.color, self.body.position, self.shape.radius)
 
     def update(self):
         if self.body.body_type == pm.Body.DYNAMIC:
+            self.acceleration = (0, 0)
             for p in planets:
                 r = self.body.position.get_distance(p.body.position)
                 if r == 0 or self == p: continue
-                print(f'distance: {r}')
+                # print(f'distance: {r}')
 
                 v = -(self.shape.mass * p.shape.mass) / (r * r) * 10e5
-                # print(f'{v}: {self.shape.mass}, {p.shape.mass}')
-                m = v / self.shape.mass
-                sm = set_magnitude((self.body.position - p.body.position), m)
-                self.acceleration = (self.acceleration[0] + sm[0], self.acceleration[1] + sm[1])
-                print(f'this is acceleration: {self.acceleration} and magnitude: {sm}')
+                mg = v / self.shape.mass
+                # print(f'{self.shape.mass} * {p.shape.mass} = {self.shape.mass * p.shape.mass}')
+                sm = set_magnitude((self.body.position - p.body.position), mg)
+                self.acceleration = ((self.acceleration[0] + sm[0]) * 100 , (self.acceleration[1] + sm[1]) * 100)
+                # print(f'what\'s dis {self.body.position - p.body.position}, {mg}')
+                # print(f'this is acceleration: {self.acceleration} and magnitude: {sm}')
 
             self.velocity = (self.velocity[0] + self.acceleration[0] * dt, self.velocity[1] + self.acceleration[1] * dt)
             self.body.position = (self.body.position.x + self.velocity[0] * dt, self.body.position.y + self.velocity[1] * dt)
-            print(f'velocity: {self.velocity} at planet: {self.body.position}')
+            # print(f'velocity: {self.velocity} at planet: {self.body.position}')
 
 
 class Rocket:
@@ -59,7 +62,7 @@ class Rocket:
         self.body.position = starting_position
         self.color = color
 
-        self.velocity = velocity
+        self.velocity = (velocity[0] * TIMESTEP, velocity[1] * TIMESTEP) 
         self.acceleration = (0, 0)
         self.angle = angle # in pi
 
@@ -72,15 +75,18 @@ class Rocket:
         pg.draw.circle(SCREEN, self.color, self.body.position, self.shape.radius)
 
     def update(self):
+        self.acceleration = (0, 0)
         for p in planets:
             r = self.body.position.get_distance(p.body.position)
-            if r == 0 or self.body.position.x == 0: continue
-            v = G * (self.shape.mass * p.shape.mass) / (r * r)
-            m = v / self.shape.mass
-            self.acceleration += set_magnitude((self.body.position - p.body.position), m)
+            if r == 0 or self == p: continue
+
+            v = -(self.shape.mass * p.shape.mass) / (r * r) * 10e5
+            mg = v / self.shape.mass
+            sm = set_magnitude((self.body.position - p.body.position), mg)
+            self.acceleration = ((self.acceleration[0] + sm[0]) * 100 , (self.acceleration[1] + sm[1]) * 100)
+
         self.velocity = (self.velocity[0] + self.acceleration[0] * dt, self.velocity[1] + self.acceleration[1] * dt)
         self.body.position = (self.body.position.x + self.velocity[0] * dt, self.body.position.y + self.velocity[1] * dt)
-
 
 class OnScreenText:
     def __init__(self, text, fontsize, coords, antial=True, center=True, color=(0, 0, 0)):
@@ -172,17 +178,18 @@ SPACE = pm.Space()
 SPACE.gravity = (0, 0)
 
 SCALE = 1/1000
-MASS_SCALE = 1e-24
+MASS_SCALE = 1e-25
 TIMESTEP = 60 # 1 minute
 SPEED = 1
 G = 6.67e-11
 
-EARTH = Planet((W/2,                  H/2), 6371, 5.97 * 10**24, (0, 0), (100, 200, 255), body_type=pm.Body.STATIC)
-MOON =  Planet((W/2 - 384400 * SCALE, H/2), 1737, 7.34 * 10**22, (0, 10000), (200, 200, 200)) # 384,000 km from earth
+EARTH = Planet((W/2,                  H/2), 6371, 5.97 * 10**24, (0,    0), (100, 200, 255), body_type=pm.Body.STATIC)
+MOON =  Planet((W/2 - 405400 * SCALE, H/2), 1737, 7.34 * 10**22, (0, -2500), (200, 200, 200)) # 405,400 km from earth
+moon_tail = [MOON.body.position]
 planets = [EARTH, MOON]
 
 STARTING_POSITION = (EARTH.body.position[0] + EARTH.shape.radius + 10, EARTH.body.position[1])
-# R1 = Rocket(STARTING_POSITION, (0, 0), 200, (200, 180, 0), 0)
+R1 = Rocket(STARTING_POSITION, (0, 0), 200, (200, 180, 0), 0)
 rocket_tail = [STARTING_POSITION]
 
 last_ticks = 0
@@ -191,7 +198,7 @@ count_ticks = 0
 while True:
     CLOCK.tick(60)
 
-    dt = CLOCK.tick(60) / 1000
+    dt = min(CLOCK.tick(60) / 1000, 0.02)
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -201,12 +208,12 @@ while True:
                 case pg.K_ESCAPE:
                     sys.exit()
 
-    SPACE.step(1/50)
+    # SPACE.step(1/50)
 
     SCREEN.fill((0, 0, 20))
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
-    # R1.update()
+    R1.update()
 
     for p in planets:
         p.update()
@@ -214,9 +221,14 @@ while True:
     for p in planets:
         p.draw()
 
-    # rocket_tail.append(R1.body.position)
-    # pg.draw.lines(SCREEN, R1.color, False, rocket_tail)
-    # R1.draw()
+
+    moon_tail.append(MOON.body.position)
+    pg.draw.lines(SCREEN, MOON.color, False, moon_tail)
+
+
+    rocket_tail.append(R1.body.position)
+    pg.draw.lines(SCREEN, R1.color, False, rocket_tail)
+    R1.draw()
 
     elapsed_time = time.time() - TIMER
     etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
