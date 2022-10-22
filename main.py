@@ -1,110 +1,65 @@
 '''
 Libraries:
 pygame - graphics
-pymunk - physics (though gravity is calculated in a method of Planet and Rocket)
-queue  - Planets' and Rocket's trails tracking
+deque  - Planets' and Rocket's trails tracking
 time   - timer on screen
 os     - resources for graphics 
 '''
 
 
+from collections import deque
 import pygame as pg
-import pymunk as pm
-import queue
 import time
 import sys
 import os
 
 
-class Planet:
-    def __init__(self, position, radius, mass, velocity, color, body_type=pm.Body.DYNAMIC, trail=True):
-        self.body = pm.Body(mass * MASS_SCALE, 0, body_type=body_type)
-        self.body.position = position
-        self.body.velocity = (velocity[0] * SCALE * TIMESTEP, velocity[1] * SCALE * TIMESTEP)
-        self.acceleration = (0, 0)
+#*                                        (km, kg); (rocket, planet dynamic, planet static)
+class Entity: #* all the input parameters are real; valid types are: "R", "PD", "PS"
+    def __init__(self, coordinates, init_velocity, radius, mass, entity_type, color, has_trail=True):
+        self.coordinates = pg.math.Vector2(coordinates)
+        self.position = self.coordinates / SCALE
+        self.radius  = radius
+
+        self.velocity = pg.Vector2(init_velocity)
+        self.acceleration = pg.Vector2(0, 0)
+        self.mass = mass
+
+        self.type = entity_type
+
         self.color = color
 
-        if trail and body_type == pm.Body.DYNAMIC:
-            self.toggled_trail = True
-            self.trail = queue.Queue(TRAIL_LENGTH + 10)
-            self.trail.put(position)
-            self.trail.put(position)
-        else: self.toggled_trail = False
-
-        self.shape = pm.Circle(self.body, radius * SCALE)
-        self.shape.mass = mass * MASS_SCALE
-
-        SPACE.add(self.body, self.shape)
-
-    def draw(self):
-        if self.toggled_trail: pg.draw.lines(SCREEN, self.color, False, self.trail.queue)
-        pg.draw.circle(SCREEN, self.color, self.body.position, self.shape.radius)
+        if has_trail and entity_type != "PS":
+            self.trail = deque([self.coordinates], maxlen=TRAILSIZE)
+            self.trail.append(self.coordinates)
 
     def update(self):
-        if self.toggled_trail:
-            self.trail.put(self.body.position)
-            if self.trail.qsize() >= TRAIL_LENGTH: self.trail.get()
+        if self.type == "PS": return
+        else: self.trail.append(self.coordinates)
 
-        if self.body.body_type == pm.Body.DYNAMIC:
-            self.acceleration = (0, 0)
-            for p in planets:
-                r = self.body.position.get_distance(p.body.position)
-                # skip if division by zero or iterated planet is itself
-                if r == 0 or self == p: continue
+        self.acceleration = pg.Vector2(0, 0)
 
-                # i don't understand shit
-                v = -(self.shape.mass * p.shape.mass) / (r * r) * 1e6
-                print(f'{v}')
-                mg = v / self.shape.mass
-                sm = set_magnitude((self.body.position - p.body.position), mg)
-                self.acceleration = ((self.acceleration[0] + sm[0]) * 100 , (self.acceleration[1] + sm[1]) * 100)
+        for e in entities:
+            if e == self: continue
 
-            # update velocity
-            self.body.velocity = (self.body.velocity[0] + self.acceleration[0] * dt, self.body.velocity[1] + self.acceleration[1] * dt)
+            d = self.position - e.position
 
+            r = d.length()
 
-class Rocket:
-    def __init__(self, position, velocity , mass, color, angle, trail=True):
-        self.body = pm.Body(mass * MASS_SCALE, 0, body_type=pm.Body.DYNAMIC)
-        self.body.position = position
-        self.body.velocity = (velocity[0] * TIMESTEP, velocity[1] * TIMESTEP) 
-        self.acceleration = (0, 0)
-        self.color = color
+            if r < self.radius + e.radius:
+                continue
 
-        if trail:
-            self.toggled_trail = True
-            self.trail = queue.Queue(TRAIL_LENGTH + 10)
-            self.trail.put(position)
-            self.trail.put(position)
+            f = d * (-G * e.mass / (r * r * r))
 
-        self.angle = angle # in pi
+            self.acceleration += f
 
-        self.shape = pm.Segment(self.body, (-1, 0), (1, 0), radius=2)
-        self.shape.mass = mass * MASS_SCALE
-
-        SPACE.add(self.body, self.shape)
+        self.velocity += self.acceleration * dt
+        self.position += self.velocity * dt
+        self.coordinates = self.position * SCALE
 
     def draw(self):
-        if self.toggled_trail: pg.draw.lines(SCREEN, self.color, False, self.trail.queue)
-        pg.draw.circle(SCREEN, self.color, self.body.position, self.shape.radius)
-
-    def update(self):
-        if self.toggled_trail:
-            self.trail.put(self.body.position)
-            if self.trail.qsize() >= TRAIL_LENGTH: self.trail.get()
-
-        self.acceleration = (0, 0)
-        for p in planets:
-            r = self.body.position.get_distance(p.body.position)
-            if r == 0: continue
-
-            v = -(self.shape.mass * p.shape.mass) / (r * r) * 1e6
-            mg = v / self.shape.mass
-            sm = set_magnitude((self.body.position - p.body.position), mg)
-            self.acceleration = ((self.acceleration[0] + sm[0]) * 100, (self.acceleration[1] + sm[1]) * 100)
-
-        self.body.velocity = (self.body.velocity[0] + self.acceleration[0] * dt, self.body.velocity[1] + self.acceleration[1] * dt)
-        # print(f'{self.acceleration}, {self.body.velocity}')
+        if self.type != "PS": pg.draw.lines(SCREEN, self.color, False, self.trail)
+        pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius * SCALE)
 
 
 class OnScreenText:
@@ -162,24 +117,15 @@ class Button:
 
 
 def event_handler(event):
-    if event.type == pg.QUIT:
-        sys.exit()
-    if event.type == pg.KEYDOWN:
-        match event.key:
-            case pg.K_ESCAPE:
-                sys.exit()
-
-def set_magnitude(vec, nm):
-    nv = normalize(vec)
-    return (nv[0] * nm, nv[1] * nm)
-
-def normalize(a):
-    mg = get_magnitude(a)
-    if mg == 0: return (0, 0)
-    return (a.x / mg, a.y / mg)
-
-def get_magnitude(a):
-    return (a.x * a.x + a.y * a.y)**0.5
+    match event.type:
+        case pg.QUIT:
+            sys.exit()
+        case pg.KEYDOWN:
+            match event.key:
+                case pg.K_ESCAPE:
+                    sys.exit()
+        case pg.MOUSEBUTTONDOWN:
+            entities.append(Entity(event.pos, (0, 0), 4000, 4e20, "PD", (0, 230, 230)))
 
 
 pg.init()
@@ -199,9 +145,11 @@ impact = "impact.ttf"
 tabs = "AmpleSoundTab.ttf"
 gestures = "holomdl2.ttf"
 
-FONTS = pg.font.Font((os.path.join(FONT_PATH, hp)), 54)
-FONTM = pg.font.Font((os.path.join(FONT_PATH, hp)), 90)
-FONTL = pg.font.Font((os.path.join(FONT_PATH, hp)), 120)
+font = hp
+
+FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 54)
+FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 90)
+FONTL = pg.font.Font((os.path.join(FONT_PATH, font)), 120)
 
 RESOLUTION = W, H = (1500, 900)
 SCREEN = pg.display.set_mode(RESOLUTION)
@@ -214,46 +162,36 @@ TIMER = time.time()
 elapsed_time = time.time() - TIMER
 etime_ost = OnScreenText(str(elapsed_time), FONTS, (W - 80, H - 35), color=(240, 240, 250))
 
-SPACE = pm.Space()
-SPACE.gravity = (0, 0)
+SCALE = 1/1000000
+SPEED = 100
 
-SCALE = 1/1000
-MASS_SCALE = 1e-25
-TIMESTEP = 60 # 1 minute
-SPEED = 1
 G = 6.67e-11
 
-TRAIL_LENGTH = 100
+TRAILSIZE = 1000
+BG_COLOR = (0, 10, 25)
 
-EARTH = Planet((W/2,                  H/2), 6371, 5.97 * 10**24, (0,     0), (100, 200, 255), body_type=pm.Body.STATIC, trail=False)
-MOON =  Planet((W/2 - 405400 * SCALE, H/2), 1737, 7.34 * 10**22, (0, -5000), (200, 200, 200)) # 405,400 km from earth
-planets = [EARTH, MOON]
+EARTH  = Entity((W/2,       H/2), (0,     0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
+MOON   = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
 
-STARTING_POSITION = (EARTH.body.position[0] + EARTH.shape.radius + 200, EARTH.body.position[1])
-R1 = Rocket(STARTING_POSITION, (0, 100), 2000, (200, 180, 0), 0)
+STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
+ROCKET = Entity(STARTING_POSITION, (0, 1000), 1000, 2000, "R", (255, 100, 255))
 
-last_ticks = 0
-count_ticks = 0
+entities = [EARTH, MOON, ROCKET]
 
 while True:
     CLOCK.tick(60)
 
-    dt = min(CLOCK.tick(60) / 1000, 0.02)
+    dt = CLOCK.tick(60) * SPEED
 
     for event in pg.event.get():
         event_handler(event)
 
-    SPACE.step(dt)
-
-    SCREEN.fill((0, 0, 20))
+    SCREEN.fill(BG_COLOR)
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
-    for p in planets:
-        p.update()
-        p.draw()
-
-    R1.update()
-    R1.draw()
+    for e in entities:
+        e.update()
+        e.draw()
 
     elapsed_time = time.time() - TIMER
     etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
