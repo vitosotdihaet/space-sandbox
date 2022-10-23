@@ -3,6 +3,7 @@ Libraries:
 pygame - graphics
 deque  - Planets' and Rocket's trails tracking
 time   - timer on screen
+sys    - stopping the application
 os     - resources for graphics 
 '''
 
@@ -46,8 +47,8 @@ class Entity: #* all the input parameters are real; valid types are: "R", "PD", 
 
             r = d.length()
 
-            if r < self.radius + e.radius:
-                continue
+            #TODO? change biggest planet mass and radius if two collided
+            if r < self.radius + e.radius: continue
 
             f = d * (-G * e.mass / (r * r * r))
 
@@ -124,8 +125,8 @@ def event_handler(event):
             match event.key:
                 case pg.K_ESCAPE:
                     sys.exit()
-        case pg.MOUSEBUTTONDOWN:
-            entities.append(Entity(event.pos, (0, 0), 4000, 4e20, "PD", (0, 230, 230)))
+        case pg.MOUSEBUTTONDOWN: # spawn a planet at mouse position 
+            entities.append(Entity(event.pos, (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
 
 
 pg.init()
@@ -135,19 +136,13 @@ RES_PATH = os.path.join(CWD, "resources")
 FONT_PATH = os.path.join(RES_PATH, "fonts")
 IMG_PATH = os.path.join(RES_PATH, "images")
 
-microgramma = "microgramma.ttf"
-allison = "Allison-Regular.ttf"
 hp = "HPSimplified_Rg.ttf"
-lobster = "lobster.ttf"
-rockwell = "RockwellNovaCond.ttf"
-comic = "comic.ttf"
 impact = "impact.ttf"
-tabs = "AmpleSoundTab.ttf"
-gestures = "holomdl2.ttf"
+microgramma = "microgramma.ttf"
 
-font = hp
+font = microgramma
 
-FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 54)
+FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 40)
 FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 90)
 FONTL = pg.font.Font((os.path.join(FONT_PATH, font)), 120)
 
@@ -160,18 +155,18 @@ pg.display.set_icon(ICON)
 CLOCK = pg.time.Clock()
 TIMER = time.time()
 elapsed_time = time.time() - TIMER
-etime_ost = OnScreenText(str(elapsed_time), FONTS, (W - 80, H - 35), color=(240, 240, 250))
+etime_ost = OnScreenText(str(elapsed_time), FONTS, (W - 100, H - 35), color=(240, 240, 250))
 
 SCALE = 1/1000000
-SPEED = 100
+SPEED = 70
 
 G = 6.67e-11
 
-TRAILSIZE = 1000
+TRAILSIZE = 100
 BG_COLOR = (0, 10, 25)
 
-EARTH  = Entity((W/2,       H/2), (0,     0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
-MOON   = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
+EARTH = Entity((W/2,       H/2), (0,     0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
+MOON  = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
 ROCKET = Entity(STARTING_POSITION, (0, 1000), 1000, 2000, "R", (255, 100, 255))
