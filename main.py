@@ -137,7 +137,6 @@ FONT_PATH = os.path.join(RES_PATH, "fonts")
 IMG_PATH = os.path.join(RES_PATH, "images")
 
 hp = "HPSimplified_Rg.ttf"
-impact = "impact.ttf"
 microgramma = "microgramma.ttf"
 
 font = microgramma
