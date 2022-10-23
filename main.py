@@ -31,20 +31,20 @@ class Entity: #* all the input parameters are real; valid types are: "R", "PD", 
         self.color = color
 
         if has_trail and entity_type != "PS":
+            self.has_trail = True
             self.trail = deque([self.coordinates], maxlen=TRAILSIZE)
             self.trail.append(self.coordinates)
+        else:
+            self.has_trail = False
 
     def update(self):
         if self.type == "PS": return
-        else: self.trail.append(self.coordinates)
 
         self.acceleration = pg.Vector2(0, 0)
-
         for e in entities:
             if e == self: continue
 
             d = self.position - e.position
-
             r = d.length()
 
             #TODO? change biggest planet mass and radius if two collided
@@ -56,10 +56,14 @@ class Entity: #* all the input parameters are real; valid types are: "R", "PD", 
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
-        self.coordinates = self.position * SCALE
+
+        tmp = self.position * SCALE
+        self.coordinates = pg.Vector2((tmp[0] - W/2) / APP_SCALE + W/2, (tmp[1] - H/2) / APP_SCALE + H/2)
+        if self.has_trail: self.trail.append(self.coordinates)
+
 
     def draw(self):
-        if self.type != "PS": pg.draw.lines(SCREEN, self.color, False, self.trail)
+        if self.has_trail: pg.draw.lines(SCREEN, self.color, False, self.trail)
         pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius * SCALE)
 
 
@@ -118,6 +122,7 @@ class Button:
 
 
 def event_handler(event):
+    global APP_SCALE
     match event.type:
         case pg.QUIT:
             sys.exit()
@@ -125,8 +130,28 @@ def event_handler(event):
             match event.key:
                 case pg.K_ESCAPE:
                     sys.exit()
-        case pg.MOUSEBUTTONDOWN: # spawn a planet at mouse position 
-            entities.append(Entity(event.pos, (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+        case pg.MOUSEBUTTONDOWN:
+            match event.button:
+                case 1: # LMB to spawn a planet at mouse position 
+                    entities.append(Entity(event.pos, (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+                case 4: # SCROLL DOWN TO GET CLOSER FROM THE EARTH
+                    APP_SCALE -= DELTA_SCALE
+                    change_app_scale()
+                    print(f'closer: {APP_SCALE}')
+                case 5: # SCROLL UP TO GET FURTHER FROM THE EARTH
+                    APP_SCALE += DELTA_SCALE
+                    change_app_scale()
+                    print(f'away: {APP_SCALE}')
+
+
+#TODO fix scaling
+def change_app_scale():
+    for e in entities:
+        if e.has_trail:
+            for i in range(len(e.trail)):
+                nx = (e.trail[i][0] - W/2) / APP_SCALE + W/2
+                ny = (e.trail[i][1] - H/2) / APP_SCALE + H/2
+                e.trail[i] = pg.Vector2(nx, ny)
 
 
 pg.init()
@@ -151,13 +176,17 @@ SCREEN_SURF = pg.Surface(RESOLUTION)
 ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
 pg.display.set_icon(ICON)
 
+APP_SCALE = 1
+DELTA_SCALE = 0.1
+
 CLOCK = pg.time.Clock()
 TIMER = time.time()
 elapsed_time = time.time() - TIMER
-etime_ost = OnScreenText(str(elapsed_time), FONTS, (W - 100, H - 35), color=(240, 240, 250))
+etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 240, 250))
 
 SCALE = 1/1000000
-SPEED = 70
+SPEED = 36
+# whole orbit flew in 160 seconds if SPEED = 36 
 
 G = 6.67e-11
 
