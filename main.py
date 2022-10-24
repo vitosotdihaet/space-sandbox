@@ -17,12 +17,12 @@ import sys
 import os
 
 
-#*                                        (m, kg); (rocket, planet dynamic, planet static)
-class Entity: #* all the input parameters are real; valid types are: "R", "PD", "PS"
+# *                                          (m, kg); (rocket, planet dynamic, planet static)
+class Entity:  # * all the input parameters are real; valid types are: "R", "PD", "PS"
     def __init__(self, coordinates, init_velocity, radius, mass, entity_type, color, has_trail=True):
         self.coordinates = pg.math.Vector2(coordinates)
         self.position = self.coordinates / SCALE
-        self.radius  = radius
+        self.radius = radius
 
         self.velocity = pg.Vector2(init_velocity)
         self.acceleration = pg.Vector2(0, 0)
@@ -40,17 +40,20 @@ class Entity: #* all the input parameters are real; valid types are: "R", "PD", 
             self.has_trail = False
 
     def update(self):
-        if self.type == "PS": return
+        if self.type == "PS":
+            return
 
         self.acceleration = pg.Vector2(0, 0)
         for e in entities:
-            if e == self: continue
+            if e == self:
+                continue
 
             d = self.position - e.position
             r = d.length()
 
-            #TODO? change biggest planet mass and radius if two collided
-            if r < self.radius + e.radius: continue
+            # TODO? change biggest planet mass and radius if two collided
+            if r < self.radius + e.radius:
+                continue
 
             f = d * (-G * e.mass / (r * r * r))
 
@@ -64,9 +67,9 @@ class Entity: #* all the input parameters are real; valid types are: "R", "PD", 
             self.trail.append(self.coordinates)
             self.trail_real.append(self.position * SCALE)
 
-
     def draw(self):
-        if self.has_trail: pg.draw.lines(SCREEN, self.color, False, self.trail)
+        if self.has_trail:
+            pg.draw.lines(SCREEN, self.color, False, self.trail)
         pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius * SCALE / APP_SCALE)
 
 
@@ -80,8 +83,10 @@ class OnScreenText:
         self.center = center
 
         self.rendered_text = self.fontsize.render(self.text, self.antial, self.color)
-        if self.center == True: self.rect = self.rendered_text.get_rect(center=self.coords)
-        else: self.rect = coords
+        if self.center == True:
+            self.rect = self.rendered_text.get_rect(center=self.coords)
+        else:
+            self.rect = coords
 
     def blit(self):
         SCREEN.blit(self.rendered_text, self.rect)
@@ -89,8 +94,10 @@ class OnScreenText:
     def update(self, text):
         self.text = text
         self.rendered_text = self.fontsize.render(self.text, self.antial, self.color)
-        if self.center == True: self.rect = self.rendered_text.get_rect(center=self.coords)
-        else: self.rect = self.coords
+        if self.center == True:
+            self.rect = self.rendered_text.get_rect(center=self.coords)
+        else:
+            self.rect = self.coords
 
 
 class Button:
@@ -103,7 +110,8 @@ class Button:
         self.text = text
 
     def draw(self, outline=None):
-        if outline: pg.draw.rect(SCREEN, outline, (self.x + 5, self.y + 5, self.width, self.height), 0)
+        if outline:
+            pg.draw.rect(SCREEN, outline, (self.x + 5, self.y + 5, self.width, self.height), 0)
         pg.draw.rect(SCREEN, self.color, (self.x, self.y, self.width, self.height), 0)
 
         if self.text != "":
@@ -115,7 +123,7 @@ class Button:
                     text,
                     (self.x + (self.width/2 - text.get_width()/2),
                      self.y + (self.height/(len(lines) + 1) * i - text.get_height()/2))
-                    )
+                )
 
     def is_over(self, pos):
         if self.x < pos[0] < self.x + self.width:
@@ -127,8 +135,10 @@ class Button:
 def scale(pos):
     return pg.Vector2((pos[0] - W/2) / APP_SCALE + W/2, (pos[1] - H/2) / APP_SCALE + H/2)
 
+
 def unscale(coord):
     return pg.Vector2((coord[0] - W/2) * APP_SCALE + W/2, (coord[1] - H/2) * APP_SCALE + H/2)
+
 
 def event_handler(event):
     global APP_SCALE
@@ -201,16 +211,15 @@ elapsed_time = time.time() - TIMER
 etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 240, 250))
 
 SCALE = 1/1000000
-SPEED = 36
-# whole orbit flew in 160 seconds if SPEED = 36 
+SPEED = 36  # whole orbit in 160 seconds if SPEED = 36
 
 G = 6.67e-11
 
 TRAILSIZE = 100
 BG_COLOR = (0, 10, 25)
 
-EARTH = Entity((W/2,       H/2), (0,     0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
-MOON  = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
+EARTH = Entity((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
+MOON = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
 ROCKET = Entity(STARTING_POSITION, (0, 1000), 1000, 2000, "R", (255, 100, 255))
