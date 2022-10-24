@@ -141,7 +141,7 @@ def unscale(coord):
 
 
 def event_handler(event):
-    global APP_SCALE
+    global APP_SCALE, speed
     match event.type:
         case pg.QUIT:
             sys.exit()
@@ -149,6 +149,11 @@ def event_handler(event):
             match event.key:
                 case pg.K_ESCAPE:
                     sys.exit()
+                case pg.K_SPACE:
+                    if speed != 0:
+                        speed = 0
+                    else:
+                        speed = SPEED
         case pg.MOUSEBUTTONDOWN:
             match event.button:
                 case 1:  # LMB to spawn a planet at mouse position
@@ -211,14 +216,16 @@ elapsed_time = time.time() - TIMER
 etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 240, 250))
 
 SCALE = 1/1000000
-SPEED = 36  # whole orbit in 160 seconds if SPEED = 36
+SPEED = 36
+speed = SPEED
+# whole orbit in 160 seconds if SPEED = 36
 
 G = 6.67e-11
 
 TRAILSIZE = 100
 BG_COLOR = (0, 10, 25)
 
-EARTH = Entity((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
+EARTH = Entity((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, "PD", (100, 100, 255))
 MOON = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
@@ -229,7 +236,7 @@ entities = [EARTH, MOON, ROCKET]
 while True:
     CLOCK.tick(60)
 
-    dt = CLOCK.tick(60) * SPEED
+    dt = CLOCK.tick(60) * speed
 
     for event in pg.event.get():
         event_handler(event)
