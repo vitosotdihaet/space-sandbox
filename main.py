@@ -11,12 +11,13 @@ os     - resources for graphics
 
 from collections import deque
 import pygame as pg
+import math
 import time
 import sys
 import os
 
 
-#*                                        (km, kg); (rocket, planet dynamic, planet static)
+#*                                        (m, kg); (rocket, planet dynamic, planet static)
 class Entity: #* all the input parameters are real; valid types are: "R", "PD", "PS"
     def __init__(self, coordinates, init_velocity, radius, mass, entity_type, color, has_trail=True):
         self.coordinates = pg.math.Vector2(coordinates)
