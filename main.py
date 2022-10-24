@@ -2,6 +2,7 @@
 Libraries:
 pygame - graphics
 deque  - Planets' and Rocket's trails tracking
+math   - smoothing function for zooming
 time   - timer on screen
 sys    - stopping the application
 os     - resources for graphics 
@@ -32,8 +33,8 @@ class Entity: #* all the input parameters are real; valid types are: "R", "PD", 
 
         if has_trail and entity_type != "PS":
             self.has_trail = True
-            self.trail = deque([self.coordinates], maxlen=TRAILSIZE)
-            self.trail.append(self.coordinates)
+            self.trail = deque([scale(self.coordinates), scale(self.coordinates)], maxlen=TRAILSIZE)
+            self.trail_real = deque([self.position * SCALE, self.position * SCALE], maxlen=TRAILSIZE)
         else:
             self.has_trail = False
 
@@ -57,14 +58,15 @@ class Entity: #* all the input parameters are real; valid types are: "R", "PD", 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
 
-        tmp = self.position * SCALE
-        self.coordinates = pg.Vector2((tmp[0] - W/2) / APP_SCALE + W/2, (tmp[1] - H/2) / APP_SCALE + H/2)
-        if self.has_trail: self.trail.append(self.coordinates)
+        self.coordinates = scale(self.position * SCALE)
+        if self.has_trail:
+            self.trail.append(self.coordinates)
+            self.trail_real.append(self.position * SCALE)
 
 
     def draw(self):
         if self.has_trail: pg.draw.lines(SCREEN, self.color, False, self.trail)
-        pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius * SCALE)
+        pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius * SCALE / APP_SCALE)
 
 
 class OnScreenText:
@@ -121,6 +123,12 @@ class Button:
         return False
 
 
+def scale(pos):
+    return pg.Vector2((pos[0] - W/2) / APP_SCALE + W/2, (pos[1] - H/2) / APP_SCALE + H/2)
+
+def unscale(coord):
+    return pg.Vector2((coord[0] - W/2) * APP_SCALE + W/2, (coord[1] - H/2) * APP_SCALE + H/2)
+
 def event_handler(event):
     global APP_SCALE
     match event.type:
@@ -132,26 +140,32 @@ def event_handler(event):
                     sys.exit()
         case pg.MOUSEBUTTONDOWN:
             match event.button:
-                case 1: # LMB to spawn a planet at mouse position 
-                    entities.append(Entity(event.pos, (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
-                case 4: # SCROLL DOWN TO GET CLOSER FROM THE EARTH
-                    APP_SCALE -= DELTA_SCALE
-                    change_app_scale()
-                    print(f'closer: {APP_SCALE}')
-                case 5: # SCROLL UP TO GET FURTHER FROM THE EARTH
-                    APP_SCALE += DELTA_SCALE
-                    change_app_scale()
-                    print(f'away: {APP_SCALE}')
+                case 1:  # LMB to spawn a planet at mouse position
+                    entities.append(Entity(unscale(event.pos), (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+                case 4:  # Scroll up to get closer to the Earth
+                    change_app_scale(True)
+                case 5:  # Scroll down to get further from the Earth
+                    change_app_scale(False)
 
 
-#TODO fix scaling
-def change_app_scale():
+def change_app_scale(zoom_in):
+    global ZOOM_LEVEL
+    global APP_SCALE
+
+    if zoom_in:
+        ZOOM_LEVEL -= DELTA_ZOOM
+    else:
+        ZOOM_LEVEL += DELTA_ZOOM
+
+    if ZOOM_LEVEL <= 1:
+        APP_SCALE = 1 / (1 + math.exp(-ZOOM_LEVEL))
+    else:
+        APP_SCALE = ZOOM_LEVEL * ZOOM_LEVEL
+
     for e in entities:
         if e.has_trail:
             for i in range(len(e.trail)):
-                nx = (e.trail[i][0] - W/2) / APP_SCALE + W/2
-                ny = (e.trail[i][1] - H/2) / APP_SCALE + H/2
-                e.trail[i] = pg.Vector2(nx, ny)
+                e.trail[i] = scale(e.trail_real[i])
 
 
 pg.init()
@@ -177,7 +191,8 @@ ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
 pg.display.set_icon(ICON)
 
 APP_SCALE = 1
-DELTA_SCALE = 0.1
+ZOOM_LEVEL = 0
+DELTA_ZOOM = 0.1
 
 CLOCK = pg.time.Clock()
 TIMER = time.time()
