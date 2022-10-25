@@ -41,6 +41,7 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
 
     def update(self):
         if self.type == "PS":
+            self.coordinates = scale(self.position * SCALE) + VIEW_COORDS
             return
 
         self.acceleration = pg.Vector2(0, 0)
@@ -62,7 +63,7 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
 
-        self.coordinates = scale(self.position * SCALE)
+        self.coordinates = scale(self.position * SCALE) + VIEW_COORDS
         if self.has_trail:
             self.trail.append(self.coordinates)
             self.trail_real.append(self.position * SCALE)
@@ -154,28 +155,35 @@ def event_handler(event):
                 case pg.K_ESCAPE:
                     sys.exit()
                 case pg.K_SPACE:
-                    if speed != 0:
-                        speed = 0
+                    if SPEED != 0:
+                        SPEED = 0
                     else:
-                        speed = SPEED
+                        SPEED  = BASE_SPEED
         case pg.MOUSEBUTTONDOWN:
             match event.button:
                 case 1:  # LMB to spawn a planet at mouse position
                     entities.append(Entity(unscale(event.pos), (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+                case 3:  # RMB to move view
+                    VIEW_MOVING = True
                 case 4:  # Scroll up to get closer to the Earth
-                    change_app_scale(True)
+                    update_view(-1)
                 case 5:  # Scroll down to get further from the Earth
-                    change_app_scale(False)
+                    update_view(1)
+        case pg.MOUSEBUTTONUP:
+            match event.button:
+                case 3:  # Release RMB to stop moving
+                    VIEW_MOVING = False
+        case pg.MOUSEMOTION:
+            if VIEW_MOVING:
+                VIEW_COORDS += event.rel
+                update_view(0)
 
 
-def change_app_scale(zoom_in):
+def update_view(zoom):
     global ZOOM_LEVEL
     global APP_SCALE
 
-    if zoom_in:
-        ZOOM_LEVEL -= DELTA_ZOOM
-    else:
-        ZOOM_LEVEL += DELTA_ZOOM
+    ZOOM_LEVEL += zoom * DELTA_ZOOM
 
     if ZOOM_LEVEL <= 1:
         APP_SCALE = 1 / (1 + math.exp(-ZOOM_LEVEL))
@@ -185,7 +193,7 @@ def change_app_scale(zoom_in):
     for e in entities:
         if e.has_trail:
             for i in range(len(e.trail)):
-                e.trail[i] = scale(e.trail_real[i])
+                e.trail[i] = scale(e.trail_real[i]) + VIEW_COORDS
 
 
 pg.init()
