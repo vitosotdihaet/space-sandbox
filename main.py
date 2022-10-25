@@ -21,13 +21,14 @@ class Viewport:
     def __init__(self):
         self.scaling = 1
         self.zoom_level = 1
-        self.delta_zoom = 0.1
+        self.delta_zoom = 0.05
 
         self.shift = pg.Vector2(0, 0)
         self.shifting = False
 
-    def scale(self, coord):
-        return pg.Vector2((coord[0] - W/2) / self.scaling + W/2, (coord[1] - H/2) / self.scaling + H/2) + self.shift
+    #TODO make scaling work to the center of screen or to a mouse
+    def scale(self, coord, mouse_pos=pg.Vector2(0, 0)):
+        return pg.Vector2((coord[0] - W/2 + mouse_pos.x) / self.scaling + W/2, (coord[1] - H/2 + mouse_pos.y) / self.scaling + H/2) + self.shift
 
     def unscale(self, coord):
         coord = coord - self.shift
@@ -229,7 +230,7 @@ pg.display.set_icon(ICON)
 
 VIEWPORT = Viewport()
 
-LAUNCH_COLOR = (255, 255, 255)
+LAUNCH_COLOR = (200, 200, 200)
 LAUNCH_WIDTH = 1
 LAUNCH_FROM = None
 LAUNCH_VELOCITY = 15
