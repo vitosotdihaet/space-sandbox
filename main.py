@@ -17,6 +17,36 @@ import sys
 import os
 
 
+class Viewport:
+    def __init__(self):
+        self.scaling = 1
+        self.zoom_level = 1
+        self.delta_zoom = 0.1
+
+        self.shift = pg.Vector2(0, 0)
+        self.shifting = False
+
+    def scale(self, pos):
+        return pg.Vector2((pos[0] - W/2) / self.scaling + W/2, (pos[1] - H/2) / self.scaling + H/2) + self.shift
+
+    def unscale(self, coord):
+        coord = coord - self.shift
+        return pg.Vector2((coord[0] - W/2) * self.scaling + W/2, (coord[1] - H/2) * self.scaling + H/2)
+
+    def update(self, zoom):
+        self.zoom_level += zoom * self.delta_zoom
+
+        if self.zoom_level < 1:
+            self.scaling = 1 / (1 + math.exp(-self.zoom_level))
+        else:
+            self.scaling = self.zoom_level * self.zoom_level
+
+        for e in entities:
+            if e.has_trail:
+                for i in range(len(e.trail)):
+                    e.trail[i] = self.scale(e.trail_real[i])
+
+
 # *                                          (m, kg); (rocket, planet dynamic, planet static)
 class Entity:  # * all the input parameters are real; valid types are: "R", "PD", "PS"
     def __init__(self, coordinates, init_velocity, radius, mass, entity_type, color, has_trail=True):
@@ -34,14 +64,14 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
 
         if has_trail and entity_type != "PS":
             self.has_trail = True
-            self.trail = deque([scale(self.coordinates), scale(self.coordinates)], maxlen=TRAILSIZE)
+            self.trail = deque([VIEWPORT.scale(self.coordinates), VIEWPORT.scale(self.coordinates)], maxlen=TRAILSIZE)
             self.trail_real = deque([self.position * SCALE, self.position * SCALE], maxlen=TRAILSIZE)
         else:
             self.has_trail = False
 
     def update(self):
         if self.type == "PS":
-            self.coordinates = scale(self.position * SCALE) + VIEW_COORDS
+            self.coordinates = VIEWPORT.scale(self.position * SCALE)
             return
 
         self.acceleration = pg.Vector2(0, 0)
@@ -63,7 +93,7 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
 
-        self.coordinates = scale(self.position * SCALE) + VIEW_COORDS
+        self.coordinates = VIEWPORT.scale(self.position * SCALE)
         if self.has_trail:
             self.trail.append(self.coordinates)
             self.trail_real.append(self.position * SCALE)
@@ -71,7 +101,7 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
     def draw(self):
         if self.has_trail:
             pg.draw.lines(SCREEN, self.color, False, self.trail)
-        pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius * SCALE / APP_SCALE)
+        pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius * SCALE / VIEWPORT.scaling)
 
 
 class OnScreenText:
@@ -133,20 +163,10 @@ class Button:
         return False
 
 
-def scale(pos):
-    return pg.Vector2((pos[0] - W/2) / APP_SCALE + W/2, (pos[1] - H/2) / APP_SCALE + H/2)
-
-
-def unscale(coord):
-    return pg.Vector2((coord[0] - W/2) * APP_SCALE + W/2, (coord[1] - H/2) * APP_SCALE + H/2)
-
-
 def event_handler(event):
-    global APP_SCALE
-    global VIEW_COORDS
-    global VIEW_MOVING
+    global VIEWPORT
     global SPEED
-    
+
     match event.type:
         case pg.QUIT:
             sys.exit()
@@ -158,42 +178,25 @@ def event_handler(event):
                     if SPEED != 0:
                         SPEED = 0
                     else:
-                        SPEED  = BASE_SPEED
+                        SPEED = BASE_SPEED
         case pg.MOUSEBUTTONDOWN:
             match event.button:
                 case 1:  # LMB to spawn a planet at mouse position
-                    entities.append(Entity(unscale(event.pos), (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+                    entities.append(Entity(VIEWPORT.unscale(event.pos), (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
                 case 3:  # RMB to move view
-                    VIEW_MOVING = True
+                    VIEWPORT.shifting = True
                 case 4:  # Scroll up to get closer to the Earth
-                    update_view(-1)
+                    VIEWPORT.update(-1)
                 case 5:  # Scroll down to get further from the Earth
-                    update_view(1)
+                    VIEWPORT.update(1)
         case pg.MOUSEBUTTONUP:
             match event.button:
                 case 3:  # Release RMB to stop moving
-                    VIEW_MOVING = False
+                    VIEWPORT.shifting = False
         case pg.MOUSEMOTION:
-            if VIEW_MOVING:
-                VIEW_COORDS += event.rel
-                update_view(0)
-
-
-def update_view(zoom):
-    global ZOOM_LEVEL
-    global APP_SCALE
-
-    ZOOM_LEVEL += zoom * DELTA_ZOOM
-
-    if ZOOM_LEVEL <= 1:
-        APP_SCALE = 1 / (1 + math.exp(-ZOOM_LEVEL))
-    else:
-        APP_SCALE = ZOOM_LEVEL * ZOOM_LEVEL
-
-    for e in entities:
-        if e.has_trail:
-            for i in range(len(e.trail)):
-                e.trail[i] = scale(e.trail_real[i]) + VIEW_COORDS
+            if VIEWPORT.shifting:
+                VIEWPORT.shift += event.rel
+                VIEWPORT.update(0)
 
 
 pg.init()
@@ -218,12 +221,7 @@ SCREEN_SURF = pg.Surface(RESOLUTION)
 ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
 pg.display.set_icon(ICON)
 
-APP_SCALE = 1
-ZOOM_LEVEL = 0
-DELTA_ZOOM = 0.1
-
-VIEW_COORDS = pg.Vector2(0, 0)
-VIEW_MOVING = False
+VIEWPORT = Viewport()
 
 CLOCK = pg.time.Clock()
 TIMER = time.time()
