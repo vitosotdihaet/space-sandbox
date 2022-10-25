@@ -166,6 +166,7 @@ class Button:
 def event_handler(event):
     global VIEWPORT
     global SPEED
+    global LAUNCH_FROM
 
     match event.type:
         case pg.QUIT:
@@ -181,8 +182,8 @@ def event_handler(event):
                         SPEED = BASE_SPEED
         case pg.MOUSEBUTTONDOWN:
             match event.button:
-                case 1:  # LMB to spawn a planet at mouse position
-                    entities.append(Entity(VIEWPORT.unscale(event.pos), (0, 0), 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+                case 1:  # LMB to start launching planet
+                    LAUNCH_FROM = event.pos
                 case 3:  # RMB to move view
                     VIEWPORT.shifting = True
                 case 4:  # Scroll up to get closer to the Earth
@@ -191,6 +192,11 @@ def event_handler(event):
                     VIEWPORT.update(1)
         case pg.MOUSEBUTTONUP:
             match event.button:
+                case 1:  # Release LMB to launch a planet
+                    velocity_vector = (LAUNCH_FROM - pg.Vector2(event.pos)) * LAUNCH_VELOCITY
+                    spawn_point = VIEWPORT.unscale(LAUNCH_FROM)
+                    entities.append(Entity(spawn_point, velocity_vector, 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+                    LAUNCH_FROM = None
                 case 3:  # Release RMB to stop moving
                     VIEWPORT.shifting = False
         case pg.MOUSEMOTION:
@@ -222,6 +228,11 @@ ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
 pg.display.set_icon(ICON)
 
 VIEWPORT = Viewport()
+
+LAUNCH_COLOR = (255, 255, 255)
+LAUNCH_WIDTH = 1
+LAUNCH_FROM = None
+LAUNCH_VELOCITY = 15
 
 CLOCK = pg.time.Clock()
 TIMER = time.time()
@@ -264,5 +275,8 @@ while True:
     elapsed_time = time.time() - TIMER
     etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
     etime_ost.blit()
+
+    if LAUNCH_FROM is not None:
+        pg.draw.line(SCREEN, LAUNCH_COLOR, LAUNCH_FROM, pg.mouse.get_pos(), LAUNCH_WIDTH)
 
     pg.display.update()
