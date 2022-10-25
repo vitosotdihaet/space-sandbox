@@ -26,8 +26,8 @@ class Viewport:
         self.shift = pg.Vector2(0, 0)
         self.shifting = False
 
-    def scale(self, pos):
-        return pg.Vector2((pos[0] - W/2) / self.scaling + W/2, (pos[1] - H/2) / self.scaling + H/2) + self.shift
+    def scale(self, coord):
+        return pg.Vector2((coord[0] - W/2) / self.scaling + W/2, (coord[1] - H/2) / self.scaling + H/2) + self.shift
 
     def unscale(self, coord):
         coord = coord - self.shift
