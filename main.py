@@ -141,7 +141,11 @@ def unscale(coord):
 
 
 def event_handler(event):
-    global APP_SCALE, speed
+    global APP_SCALE
+    global VIEW_COORDS
+    global VIEW_MOVING
+    global SPEED
+    
     match event.type:
         case pg.QUIT:
             sys.exit()
@@ -210,14 +214,17 @@ APP_SCALE = 1
 ZOOM_LEVEL = 0
 DELTA_ZOOM = 0.1
 
+VIEW_COORDS = pg.Vector2(0, 0)
+VIEW_MOVING = False
+
 CLOCK = pg.time.Clock()
 TIMER = time.time()
 elapsed_time = time.time() - TIMER
 etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 240, 250))
 
 SCALE = 1/1000000
-SPEED = 36
-speed = SPEED
+BASE_SPEED = 36
+SPEED = BASE_SPEED
 # whole orbit in 160 seconds if SPEED = 36
 
 G = 6.67e-11
@@ -236,7 +243,7 @@ entities = [EARTH, MOON, ROCKET]
 while True:
     CLOCK.tick(60)
 
-    dt = CLOCK.tick(60) * speed
+    dt = CLOCK.tick(60) * SPEED
 
     for event in pg.event.get():
         event_handler(event)
