@@ -26,7 +26,7 @@ class Viewport:
         self.shift = pg.Vector2(0, 0)
         self.shifting = False
 
-    #TODO make scaling work to the center of screen or to a mouse
+    # TODO make scaling work to the center of screen or to a mouse
     def scale(self, coord, mouse_pos=pg.Vector2(0, 0)):
         return pg.Vector2((coord[0] - W/2 + mouse_pos.x) / self.scaling + W/2, (coord[1] - H/2 + mouse_pos.y) / self.scaling + H/2) + self.shift
 
@@ -48,7 +48,7 @@ class Viewport:
                     e.trail[i] = self.scale(e.trail_real[i])
 
 
-# *                                          (m, kg); (rocket, planet dynamic, planet static)
+# *                                    (m, kg, secs); (rocket, planet dynamic, planet static)
 class Entity:  # * all the input parameters are real; valid types are: "R", "PD", "PS"
     def __init__(self, coordinates, init_velocity, radius, mass, entity_type, color, has_trail=True):
         self.coordinates = pg.math.Vector2(coordinates)
@@ -63,6 +63,9 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
 
         self.color = color
 
+        # if entity_type == "R":
+        #     self.angle = 0
+
         if has_trail and entity_type != "PS":
             self.has_trail = True
             self.trail = deque([VIEWPORT.scale(self.coordinates), VIEWPORT.scale(self.coordinates)], maxlen=TRAILSIZE)
@@ -70,12 +73,27 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
         else:
             self.has_trail = False
 
+    def move(self, directions):
+        self.acceleration = pg.Vector2(0, 0)
+        for e in directions:
+            self.acceleration += e
+        dx = self.acceleration.x
+        dy = self.acceleration.y
+        if abs(dx) == abs(dy) == 1:
+            self.acceleration.x = 1/2**0.5 * dx
+            self.acceleration.y = 1/2**0.5 * dy
+        print(directions)
+        self.acceleration *= MAX_ROCKET_ACCEL #* math.sin(self.angle)
+        print(self.acceleration)
+        print()
+        ROCKET.update()
+
     def update(self):
         if self.type == "PS":
             self.coordinates = VIEWPORT.scale(self.position * SCALE)
             return
 
-        self.acceleration = pg.Vector2(0, 0)
+        # self.acceleration = pg.Vector2(0, 0)
         for e in entities:
             if e == self:
                 continue
@@ -83,16 +101,29 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
             d = self.position - e.position
             r = d.length()
 
-            # TODO? change biggest planet mass and radius if two collided
-            if r < self.radius + e.radius:
-                continue
+            # TODO? change biggest planet mass, radius, etc. if two collided
+            if r <= self.radius + e.radius:
+                if self.velocity.x > e.velocity.x:
+                    self.velocity.x -= e.velocity.x
+                    e.velocity.x = self.velocity.x
+                else: 
+                    e.velocity.x -= self.velocity.x
+                    self.velocity.x = e.velocity.x
 
-            f = d * (-G * e.mass / (r * r * r))
-
-            self.acceleration += f
+                if self.velocity.y > e.velocity.y:
+                    self.velocity.y -= e.velocity.y
+                    e.velocity.y = self.velocity.y
+                else: 
+                    e.velocity.y -= self.velocity.y
+                    self.velocity.y = e.velocity.y
+            else:
+                f = d * (-G * e.mass / (r * r * r))
+                self.acceleration += f
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
+        # print(f'vel and acc: {self.velocity}, {self.acceleration}')
+        self.acceleration = pg.Vector2(0, 0)
 
         self.coordinates = VIEWPORT.scale(self.position * SCALE)
         if self.has_trail:
@@ -168,6 +199,11 @@ def event_handler(event):
     global VIEWPORT
     global SPEED
     global LAUNCH_FROM
+    
+    pressed = pg.key.get_pressed()
+    for key in MOVE_MAP:
+        if pressed[key]:
+            ROCKET.move([MOVE_MAP[key]])
 
     match event.type:
         case pg.QUIT:
@@ -207,6 +243,7 @@ def event_handler(event):
 
 
 pg.init()
+pg.key.set_repeat(0, 0)
 
 CWD = os.path.dirname(__file__)
 RES_PATH = os.path.join(CWD, "resources")
@@ -246,6 +283,7 @@ SPEED = BASE_SPEED
 # whole orbit in 160 seconds if SPEED = 36
 
 G = 6.67e-11
+MAX_ROCKET_ACCEL = 39240 / 360000
 
 TRAILSIZE = 100
 BG_COLOR = (0, 10, 25)
@@ -254,7 +292,12 @@ EARTH = Entity((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, "PD", (100, 100, 255))
 MOON = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
-ROCKET = Entity(STARTING_POSITION, (0, 1000), 1000, 2000, "R", (255, 100, 255))
+ROCKET = Entity(STARTING_POSITION, (0, 0), 1000, 2000, "R", (255, 100, 255))
+
+MOVE_MAP = {pg.K_UP:    pg.Vector2( 0, -1),
+            pg.K_DOWN:  pg.Vector2( 0,  1),
+            pg.K_LEFT:  pg.Vector2(-1,  0),
+            pg.K_RIGHT: pg.Vector2( 1,  0)}
 
 entities = [EARTH, MOON, ROCKET]
 
