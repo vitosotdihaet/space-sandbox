@@ -9,12 +9,17 @@ os     - resources for graphics
 '''
 
 
-from collections import deque
 import pygame as pg
+import pygame_widgets as pw
+
 import math
 import time
 import sys
 import os
+
+from pygame import gfxdraw
+from pygame_widgets.slider import Slider
+from collections import deque
 
 
 class Viewport:
@@ -48,8 +53,8 @@ class Viewport:
                     e.trail[i] = self.scale(e.trail_real[i])
 
 
-# *                                    (m, kg, secs); (rocket, planet dynamic, planet static)
-class Entity:  # * all the input parameters are real; valid types are: "R", "PD", "PS"
+# *                                    (m, kg, secs)                      (rocket, planet dynamic, planet static)
+class Entity:  # * all the input parameters are real, except coordinates; valid types are: "R", "PD", "PS"
     def __init__(self, coordinates, init_velocity, radius, mass, entity_type, color, has_trail=True):
         self.coordinates = pg.math.Vector2(coordinates)
         self.position = self.coordinates / SCALE
@@ -63,9 +68,6 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
 
         self.color = color
 
-        # if entity_type == "R":
-        #     self.angle = 0
-
         if has_trail and entity_type != "PS":
             self.has_trail = True
             self.trail = deque([VIEWPORT.scale(self.coordinates), VIEWPORT.scale(self.coordinates)], maxlen=TRAILSIZE)
@@ -77,21 +79,22 @@ class Entity:  # * all the input parameters are real; valid types are: "R", "PD"
         self.acceleration = pg.Vector2(0, 0)
         for e in directions:
             self.acceleration += e
+
         dx = self.acceleration.x
         dy = self.acceleration.y
-        if abs(dx) == abs(dy) == 1:
+        if abs(dx) == abs(dy) == 1: # Check for diagonal movement
             self.acceleration.x = 1/2**0.5 * dx
             self.acceleration.y = 1/2**0.5 * dy
-        self.acceleration *= MAX_ROCKET_ACCEL #* math.sin(self.angle)
-        # print(f'{self.acceleration}\n')
-        ROCKET.update()
+
+        self.acceleration *= MAX_ROCKET_ACCEL
+        self.update()
 
     def update(self):
         if self.type == "PS":
             self.coordinates = VIEWPORT.scale(self.position * SCALE)
             return
 
-        for e in entities:
+        for e in entities:  # Iterate over all the entities to calculate physics
             if e == self:
                 continue
 
@@ -190,7 +193,6 @@ class Button:
 
 def event_handler(event):
     global VIEWPORT
-    global SPEED
     global LAUNCH_FROM
 
     match event.type:
@@ -201,14 +203,15 @@ def event_handler(event):
                 case pg.K_ESCAPE:
                     sys.exit()
                 case pg.K_SPACE:
-                    if SPEED != 0:
-                        SPEED = 0
+                    if SPEED_SLIDER.value != 0:
+                        SPEED_SLIDER.value = 0
                     else:
-                        SPEED = BASE_SPEED
+                        SPEED_SLIDER.value = BASE_SPEED
         case pg.MOUSEBUTTONDOWN:
             match event.button:
                 case 1:  # LMB to start launching planet
-                    LAUNCH_FROM = event.pos
+                    if event.pos[0] > 40:  # Check if mouse.pos is not near SPEED_SLIDER
+                        LAUNCH_FROM = event.pos
                 case 3:  # RMB to move view
                     VIEWPORT.shifting = True
                 case 4:  # Scroll up to get closer to the Earth
@@ -218,10 +221,11 @@ def event_handler(event):
         case pg.MOUSEBUTTONUP:
             match event.button:
                 case 1:  # Release LMB to launch a planet
-                    velocity_vector = (LAUNCH_FROM - pg.Vector2(event.pos)) * LAUNCH_VELOCITY
-                    spawn_point = VIEWPORT.unscale(LAUNCH_FROM)
-                    entities.append(Entity(spawn_point, velocity_vector, 1500 * 1000, 4e22, "PD", (0, 230, 230)))
-                    LAUNCH_FROM = None
+                    if LAUNCH_FROM != None:
+                        velocity_vector = (LAUNCH_FROM - pg.Vector2(event.pos)) * LAUNCH_VELOCITY
+                        spawn_point = VIEWPORT.unscale(LAUNCH_FROM)
+                        entities.append(Entity(spawn_point, velocity_vector, 1500 * 1000, 4e22, "PD", (0, 230, 230)))
+                        LAUNCH_FROM = None
                 case 3:  # Release RMB to stop moving
                     VIEWPORT.shifting = False
         case pg.MOUSEMOTION:
@@ -264,13 +268,17 @@ TIMER = time.time()
 elapsed_time = time.time() - TIMER
 etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 240, 250))
 
-SCALE = 1/1000000
-BASE_SPEED = 36 / 5
+# whole earth orbit in 156 seconds by moon if SPEED = 36
+# to have real life time speed, you need to set BASE_SPEED to 7.395e-7 => 27d 7h 43m (5,859,780 seconds)
+# the lower the speed, the more accurate is result, speed change, how often calculations happen
+BASE_SPEED = 7.395e-7
 SPEED = BASE_SPEED
-# whole orbit in 160 seconds if SPEED = 36
+SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100, min=1, max=400, step=0.1, initial=BASE_SPEED,
+                      vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
+SCALE = 1/1000000
 G = 6.67e-11
-MAX_ROCKET_ACCEL = 39240 / 360000
+MAX_ROCKET_ACCEL = 39240 / 3600 / 100
 
 TRAILSIZE = 100
 BG_COLOR = (0, 10, 25)
@@ -291,15 +299,14 @@ entities = [EARTH, MOON, ROCKET]
 while True:
     CLOCK.tick(60)
 
-    dt = CLOCK.tick(60) * SPEED
+    dt = CLOCK.tick(60) * SPEED_SLIDER.value
 
-    for event in pg.event.get():
+    events = pg.event.get()
+    for event in events:
         event_handler(event)
 
     pressed = pg.key.get_pressed()
-    for key in MOVE_MAP:
-        if pressed[key]:
-            ROCKET.move([MOVE_MAP[key]])
+    ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
 
     SCREEN.fill(BG_COLOR)
     SCREEN.blit(SCREEN_SURF, (0, 0))
@@ -317,4 +324,5 @@ while True:
     if LAUNCH_FROM is not None:
         pg.draw.line(SCREEN, LAUNCH_COLOR, LAUNCH_FROM, pg.mouse.get_pos(), LAUNCH_WIDTH)
 
+    pw.update(events)
     pg.display.update()
