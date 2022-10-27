@@ -1,6 +1,6 @@
 '''
 Libraries:
-pygame - graphics
+pygame + pygame_widgets - graphics
 deque  - Planets' and Rocket's trails tracking
 math   - smoothing function for zooming
 time   - timer on screen
@@ -17,7 +17,6 @@ import time
 import sys
 import os
 
-from pygame import gfxdraw
 from pygame_widgets.slider import Slider
 from collections import deque
 
@@ -82,7 +81,7 @@ class Entity:  # * all the input parameters are real, except coordinates; valid 
 
         dx = self.acceleration.x
         dy = self.acceleration.y
-        if abs(dx) == abs(dy) == 1: # Check for diagonal movement
+        if abs(dx) == abs(dy) == 1:  # Check for diagonal movement
             self.acceleration.x = 1/2**0.5 * dx
             self.acceleration.y = 1/2**0.5 * dy
 
@@ -289,10 +288,10 @@ MOON = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 2
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
 ROCKET = Entity(STARTING_POSITION, (0, 0), 100 * 1000, 2000, "R", (255, 100, 255))
 
-MOVE_MAP = {pg.K_UP:    pg.Vector2( 0, -1),
-            pg.K_DOWN:  pg.Vector2( 0,  1),
+MOVE_MAP = {pg.K_UP:    pg.Vector2(0, -1),
+            pg.K_DOWN:  pg.Vector2(0,  1),
             pg.K_LEFT:  pg.Vector2(-1,  0),
-            pg.K_RIGHT: pg.Vector2( 1,  0)}
+            pg.K_RIGHT: pg.Vector2(1,  0)}
 
 entities = [EARTH, MOON, ROCKET]
 
