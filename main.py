@@ -86,7 +86,6 @@ class Entity:  # * all the input parameters are real, except coordinates; valid 
             self.acceleration.y = 1/2**0.5 * dy
 
         self.acceleration *= MAX_ROCKET_ACCEL
-        self.update()
 
     def update(self):
         if self.type == "PS":
@@ -94,24 +93,26 @@ class Entity:  # * all the input parameters are real, except coordinates; valid 
             return
 
         for e in entities:  # Iterate over all the entities to calculate physics
-            if e == self:
+            if e == self or e.type == "R":
                 continue
 
             d = self.position - e.position
             r = d.length()
 
             # TODO? change biggest planet mass, radius, etc. if two collided
-            if r <= self.radius + e.radius:
-                if self.type == 'R' or e.type == 'R':
-                    self.velocity = pg.Vector2(0, 0)
+            if r < self.radius + e.radius:
+                if self.type == "R":
+                    self.velocity = e.velocity
                     self.position = e.position + d
+                elif self.mass < e.mass:
+                    self.velocity = e.velocity
+                    self.position = e.position
+                # TODO handle this case
+                # elif self.mass == e.mass:
+                #     pass
                 else:
-                    if self.mass < e.mass:
-                        self.velocity = pg.Vector2(0, 0)
-                        self.position = e.position
-                    else:
-                        e.velocity = pg.Vector2(0, 0)
-                        e.position = self.position
+                    e.velocity = self.velocity
+                    e.position = self.position
             else:
                 f = d * (-G * e.mass / (r * r * r))
                 self.acceleration += f
@@ -126,6 +127,7 @@ class Entity:  # * all the input parameters are real, except coordinates; valid 
             self.trail_real.append(self.position * SCALE)
 
     def draw(self):
+        self.coordinates = VIEWPORT.scale(self.position * SCALE)
         if self.has_trail:
             pg.draw.lines(SCREEN, self.color, False, self.trail)
         pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius / VIEWPORT.scaling * SCALE)
@@ -269,7 +271,7 @@ etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 24
 
 # whole earth orbit in 156 seconds by moon if SPEED = 36
 # to have real life time speed, you need to set BASE_SPEED to 7.395e-7 => 27d 7h 43m (5,859,780 seconds)
-# the lower the speed, the more accurate is result, speed change, how often calculations happen
+# the lower the speed, the more accurate the result, speed changes how often calculations happen
 BASE_SPEED = 7.395e-7
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100, min=1, max=400, step=0.1, initial=BASE_SPEED,
@@ -277,12 +279,12 @@ SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100, min=1, max=400, step=0.1, init
 
 SCALE = 1/1000000
 G = 6.67e-11
-MAX_ROCKET_ACCEL = 39240 / 3600 / 100
+MAX_ROCKET_ACCEL = 5
 
 TRAILSIZE = 100
 BG_COLOR = (0, 10, 25)
 
-EARTH = Entity((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, "PD", (100, 100, 255))
+EARTH = Entity((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
 MOON = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
@@ -290,10 +292,10 @@ ROCKET = Entity(STARTING_POSITION, (0, 0), 100 * 1000, 2000, "R", (255, 100, 255
 
 MOVE_MAP = {pg.K_UP:    pg.Vector2(0, -1),
             pg.K_DOWN:  pg.Vector2(0,  1),
-            pg.K_LEFT:  pg.Vector2(-1,  0),
+            pg.K_LEFT:  pg.Vector2(-1, 0),
             pg.K_RIGHT: pg.Vector2(1,  0)}
 
-entities = [EARTH, MOON, ROCKET]
+entities = [ROCKET, EARTH, MOON]
 
 while True:
     CLOCK.tick(60)
@@ -304,14 +306,17 @@ while True:
     for event in events:
         event_handler(event)
 
-    pressed = pg.key.get_pressed()
-    ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
-
     SCREEN.fill(BG_COLOR)
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
+    if dt != 0:
+        pressed = pg.key.get_pressed()
+        ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
+
+        for e in entities:
+            e.update()
+
     for e in entities:
-        e.update()
         e.draw()
     # so rocket stays on top all the time
     ROCKET.draw()
