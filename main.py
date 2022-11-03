@@ -74,19 +74,6 @@ class Entity:  # * all the input parameters are real, except coordinates; valid 
         else:
             self.has_trail = False
 
-    def move(self, directions):
-        self.acceleration = pg.Vector2(0, 0)
-        for e in directions:
-            self.acceleration += e
-
-        dx = self.acceleration.x
-        dy = self.acceleration.y
-        if abs(dx) == abs(dy) == 1:  # Check for diagonal movement
-            self.acceleration.x = 1/2**0.5 * dx
-            self.acceleration.y = 1/2**0.5 * dy
-
-        self.acceleration *= MAX_ROCKET_ACCEL
-
     def update(self):
         if self.type == "PS":
             self.coordinates = VIEWPORT.scale(self.position * SCALE)
@@ -131,6 +118,28 @@ class Entity:  # * all the input parameters are real, except coordinates; valid 
         if self.has_trail:
             pg.draw.lines(SCREEN, self.color, False, self.trail)
         pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius / VIEWPORT.scaling * SCALE)
+
+
+class Rocket(Entity):
+    def __init__(self, coordinates, init_velocity, radius, mass, entity_type, color, has_trail=True):
+        super().__init__(coordinates, init_velocity, radius, mass, entity_type, color, has_trail)
+
+    def move(self, directions):
+        # TODO fix
+        if self.velocity.length() > MAX_ROCKET_VELOCITY:
+            return
+
+        self.acceleration = pg.Vector2(0, 0)
+        for e in directions:
+            self.acceleration += e
+
+        dx = self.acceleration.x
+        dy = self.acceleration.y
+        if abs(dx) == abs(dy) == 1:  # Check for diagonal movement
+            self.acceleration.x = 1/2**0.5 * dx
+            self.acceleration.y = 1/2**0.5 * dy
+
+        self.acceleration *= ROCKET_ACCEL
 
 
 class OnScreenText:
@@ -190,6 +199,13 @@ class Button:
             if self.y < pos[1] < self.y + self.height:
                 return True
         return False
+
+
+# def calculate_collision(e1, e2):
+#     pass
+
+# def calculate_gravity(e1, e2):
+#     pass
 
 
 def event_handler(event):
@@ -279,7 +295,8 @@ SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100, min=1, max=400, step=0.1, init
 
 SCALE = 1/1000000
 G = 6.67e-11
-MAX_ROCKET_ACCEL = 5
+ROCKET_ACCEL = 5
+MAX_ROCKET_VELOCITY = 11200
 
 TRAILSIZE = 100
 BG_COLOR = (0, 10, 25)
@@ -288,7 +305,7 @@ EARTH = Entity((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, "PS", (100, 100, 255))
 MOON = Entity((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, "PD", (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
-ROCKET = Entity(STARTING_POSITION, (0, 0), 100 * 1000, 2000, "R", (255, 100, 255))
+ROCKET = Rocket(STARTING_POSITION, (0, 0), 100 * 1000, 2000, "R", (255, 100, 255))
 
 MOVE_MAP = {pg.K_UP:    pg.Vector2(0, -1),
             pg.K_DOWN:  pg.Vector2(0,  1),
