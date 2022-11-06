@@ -1,15 +1,21 @@
-# Chang'e 1 simulation
+# Chang'e 1 simulation 🚀
 Actual goal of this project is to create a controlable simulation of a Chinese Moon-exploring mission Chang'e 1.
 
-However there are a lot of extra stuff, so feel free to use it as a space sandbox
+However there are a lot of extra stuff, so feel free to use it as a space simulation sandbox kinda :)
 
-## Controls
-```LMB``` - spawn a planet (hold to launch)
+## Controls 🎮
+`LMB` - Spawn a planet (hold to launch)
 
-```RMB``` - navigate
+`RMB` - Navigate
 
-```Scroll Up/Down``` - zoom in/out (currently zooms to initial center)
+`S` - Snap back to initial center
 
-```Spacebar``` - stop/start simulation (starts simulation back at ```BASE_SPEED```)
+`Scroll Up/Down` - Zoom in/out (currently zooms to initial center)
 
-```Arrow Up/Down/Left/Right``` - control rocket
+`Spacebar` - Stop/start simulation (continues simulation at `BASE_SPEED`)
+
+`Arrow Up/Down/Left/Right` - control rocket
+### Changing LMB mode 🕹️
+`L` - Launch mode
+
+`I` - Information mode
