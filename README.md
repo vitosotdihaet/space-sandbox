@@ -1,7 +1,5 @@
-# Chang'e 1 simulation 🚀
-Actual goal of this project is to create a controlable simulation of a Chinese Moon-exploring mission Chang'e 1.
-
-However there are a lot of extra stuff, so feel free to use it as a space simulation sandbox kinda :)
+# Space simulation with python and pygame 🚀
+Interactive sandbox for space simulations 
 
 ## Controls 🎮
 `LMB` - Spawn a planet (hold to launch)
@@ -15,6 +13,7 @@ However there are a lot of extra stuff, so feel free to use it as a space simula
 `Spacebar` - Stop/start simulation (continues simulation at `BASE_SPEED`)
 
 `Arrow Up/Down/Left/Right` - control rocket
+
 ### Changing LMB mode 🕹️
 `L` - Launch mode
 
