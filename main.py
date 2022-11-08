@@ -23,11 +23,11 @@ from collections import deque
 
 class Viewport:
     def __init__(self):
-        self.scaling = 1
-        self.zoom_level = 1
+        self.scaling = INIT_SCALING
+        self.zoom_level = INIT_SCALING
         self.delta_zoom = 0.1
 
-        self.shift = pg.Vector2(0, 0)
+        self.shift = INIT_SHIFT
         self.shifting = False
 
     # TODO make scaling work to the center of screen or to a mouse
@@ -81,7 +81,7 @@ class Entity:  # * all the input parameters are real, except coordinates
             if e == self or type(e) == Rocket:
                 continue
 
-            calculate_gravity(self, e)
+            self.acceleration = calculate_force(self, e)
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt  # type: ignore
@@ -101,8 +101,16 @@ class Entity:  # * all the input parameters are real, except coordinates
 
 
 class Rocket(Entity):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
+    def __init__(self, coordinates, init_velocity, radius, color, stage_masses, stage_fuel, stage_engine_thrust, stage='LEO', has_trail=True):
+        super().__init__(coordinates, init_velocity, radius, stage_masses[0], color, has_trail)
+        '''
+        stage names are:
+        LEO - low Earth orbit
+        GTO - geosynchronous transfer orbit or geostationary transfer orbit
+        HEO - heliocentric orbit
+        '''
+        self.stage = stage
+        self.stage_masses = stage_masses
 
     def move(self, directions):
         # TODO fix
@@ -128,13 +136,8 @@ class Planet(Entity):
 
 
 class PlanetStatic(Planet):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
-
-
-class PlanetDynamic(Planet):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
+    def __init__(self, coordinates, radius, mass, color, has_trail=True):
+        super().__init__(coordinates, pg.Vector2(0, 0), radius, mass, color, has_trail)
 
 
 class OnScreenText:
@@ -198,10 +201,16 @@ class Button:
 
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
-    # TODO? change biggest planet mass, radius, etc. if two collided
+    r1 = e1.radius
+    r2 = e2.radius
+
     if type(e1) == Rocket:
         e1.velocity = e2.velocity
         e1.position = e2.position + d
+        if d.length() <= r1 + r2:
+            e1.acceleration = pg.Vector2(0, 0)
+    elif type(e2) == Rocket:
+        return
     elif e1.mass < e2.mass:
         e1.velocity = e2.velocity
         e1.position = e2.position
@@ -214,15 +223,17 @@ def calculate_collision(e1, e2, d):
 
 
 # Changes the acceleration of entity1
-def calculate_gravity(e1, e2):
+def calculate_force(e1, e2):
     d = e1.position - e2.position
     r = e1.position.distance_to(e2.position)
+    a = e1.acceleration
 
-    if r < e1.radius + e2.radius:
+    if r < e1.radius + e2.radius + EPS:
         calculate_collision(e1, e2, d)
     else:
         f = d * (-G * e2.mass / (r * r * r))
-        e1.acceleration += f
+        a += f
+    return a
 
 
 # Show planet info on LMB
@@ -269,14 +280,8 @@ def event_handler(event):
                     LMB_MODE = "i"
         case pg.MOUSEBUTTONDOWN:
             match event.button:
-                case 1:  # LMB to start launching planet
-                    match LMB_MODE:
-                        case "l":
-                            if event.pos[0] > 40:  # Check if mouse.pos is not near SPEED_SLIDER
-                                LAUNCH_FROM = event.pos
-                        case "i":
-                            show_info()
-                            
+                case 1:  # LMB to view info of the nearest entity
+                    show_info()
                 case 3:  # RMB to move view
                     VIEWPORT.shifting = True
                 case 4:  # Scroll up to get closer to the Earth
@@ -285,16 +290,6 @@ def event_handler(event):
                     VIEWPORT.update(1)
         case pg.MOUSEBUTTONUP:
             match event.button:
-                case 1:  # Release LMB to launch a planet
-                    match LMB_MODE:
-                        case "l":
-                            if LAUNCH_FROM != None:
-                                velocity_vector = (LAUNCH_FROM - pg.Vector2(event.pos)) * LAUNCH_VELOCITY
-                                spawn_point = VIEWPORT.unscale(LAUNCH_FROM)
-                                entities.append(PlanetDynamic(spawn_point, velocity_vector, 1500 * 1000, 4e22, (0, 230, 230)))
-                                LAUNCH_FROM = None
-                        case "i":
-                            pass
                 case 3:  # Release RMB to stop moving
                     VIEWPORT.shifting = False
         case pg.MOUSEMOTION:
@@ -339,17 +334,12 @@ MOVE_MAP = {pg.K_UP:    pg.Vector2(0, -1),
             pg.K_LEFT:  pg.Vector2(-1, 0),
             pg.K_RIGHT: pg.Vector2(1,  0)}
 
-LMB_MODE = "i"
-
 INFO_DISTANCE = 20
 SHOWING_INFO = None
 
+INIT_SCALING = 0.1
+INIT_SHIFT = pg.Vector2(-400, 0)
 VIEWPORT = Viewport()
-
-LAUNCH_COLOR = (200, 200, 200)
-LAUNCH_WIDTH = 1
-LAUNCH_FROM = None
-LAUNCH_VELOCITY = 15
 
 # Max amount of points trail has 
 TRAILSIZE = 100
@@ -358,32 +348,38 @@ TRAILSIZE = 100
 # whole earth orbit in 156 seconds by moon if SPEED = 36
 # to have real life time speed, you need to set BASE_SPEED to 9.584e-4 => 27d 7h 43m (5,859,780 seconds)
 # the lower the speed, the more accurate the result, speed changes how often calculations happen
-BASE_SPEED = 9.584e-4 * 100 # <- it runs x100 faster, than it would in real life
+BASE_SPEED = 9.584e-4 #* 100 # <- it runs x100 faster, than it would in real life
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
-                      min=BASE_SPEED, max=400, step=1, initial=BASE_SPEED,
+                      min=BASE_SPEED, max=100, step=1, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
 SCALE = 1/1000000
 G = 6.67e-11
+EPS = 1e3
 
 # TODO Needs tweaking and rethinking
-ROCKET_ACCEL = 5
+ROCKET_ACCEL = 7
 # MAX_ROCKET_VELOCITY = 11200
 MAX_ROCKET_VELOCITY = 11200e10
 
+EARTH = PlanetStatic((W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
+MOON = PlanetStatic((W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 200))
 
-EARTH = PlanetStatic((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, (100, 100, 255))
-MOON = PlanetDynamic((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, (200, 200, 200))
+ROCKET_RADIUS = 50
+STARTING_POSITION = (EARTH.coordinates[0] - (EARTH.radius * SCALE + ROCKET_RADIUS * SCALE), EARTH.coordinates[1])
+# masses including fuel, payload, etc.
+STAGE_MASSES = [241_000, 65_000, 15_000]
+# fuel mass
+STAGE_FUEL = [171_800, 32_600, 12_375]
+# thrust performance in vacuum without additional mass
+STAGE_ENGINES_SPEED = [4 * 816.3, 1 * 816.3 + 4 * 47.1, 2 * 78.45]
+# STAGE_MAX_THRUST = []
 
-STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
-ROCKET = Rocket(STARTING_POSITION, (0, 0), 100 * 1000, 2000, (255, 100, 255))
+ROCKET = Rocket(STARTING_POSITION, (0, 0), ROCKET_RADIUS, (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
 
-
-
-
-#! rocket has to be the last element for proper drawing
 entities = [EARTH, MOON, ROCKET]
+VIEWPORT.update(0)
 
 while True:
     CLOCK.tick(60)
@@ -406,14 +402,11 @@ while True:
 
     for e in entities:
         e.draw()
-    # so rocket stays on top all the time
+    ROCKET.draw()
 
     elapsed_time = time.time() - TIMER
     etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
     etime_ost.blit()
-
-    if LAUNCH_FROM is not None:
-        pg.draw.line(SCREEN, LAUNCH_COLOR, LAUNCH_FROM, pg.mouse.get_pos(), LAUNCH_WIDTH)
 
     pw.update(events)
     pg.display.update()
