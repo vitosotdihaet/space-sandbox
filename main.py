@@ -23,11 +23,11 @@ from collections import deque
 
 class Viewport:
     def __init__(self):
-        self.scaling = 1
-        self.zoom_level = 1
+        self.scaling = INIT_SCALING
+        self.zoom_level = INIT_SCALING
         self.delta_zoom = 0.1
 
-        self.shift = pg.Vector2(0, 0)
+        self.shift = INIT_SHIFT
         self.shifting = False
 
     # TODO make scaling work to the center of screen or to a mouse
@@ -78,10 +78,10 @@ class Entity:  # * all the input parameters are real, except coordinates
             return
 
         for e in entities:  # Iterate over all the entities to calculate physics
-            if e == self or type(e) == Rocket:
+            if e == self:
                 continue
 
-            calculate_gravity(self, e)
+            self.acceleration = calculate_force(self, e)
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt  # type: ignore
@@ -128,8 +128,8 @@ class Planet(Entity):
 
 
 class PlanetStatic(Planet):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
+    def __init__(self, coordinates, radius, mass, color, has_trail=True):
+        super().__init__(coordinates, pg.Vector2(0, 0), radius, mass, color, has_trail)
 
 
 class PlanetDynamic(Planet):
@@ -199,30 +199,34 @@ class Button:
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
     # TODO? change biggest planet mass, radius, etc. if two collided
+
     if type(e1) == Rocket:
         e1.velocity = e2.velocity
         e1.position = e2.position + d
-    elif e1.mass < e2.mass:
+    elif type(e2) == Rocket:
+        return
+    elif type(e1) != PlanetStatic and e1.mass < e2.mass:
         e1.velocity = e2.velocity
         e1.position = e2.position
     # TODO handle this case
     # elif e1.mass == e2.mass:
     #     pass
     else:
-        e2.velocity = e1.velocity
-        e2.position = e1.position
+        return
 
 
 # Changes the acceleration of entity1
-def calculate_gravity(e1, e2):
+def calculate_force(e1, e2):
     d = e1.position - e2.position
     r = e1.position.distance_to(e2.position)
 
-    if r < e1.radius + e2.radius:
+    a = e1.acceleration
+    if r < e1.radius + e2.radius + EPS:
         calculate_collision(e1, e2, d)
     else:
         f = d * (-G * e2.mass / (r * r * r))
-        e1.acceleration += f
+        a += f
+    return a
 
 
 # Show planet info on LMB
@@ -344,6 +348,8 @@ LMB_MODE = "i"
 INFO_DISTANCE = 20
 SHOWING_INFO = None
 
+INIT_SCALING = 1
+INIT_SHIFT = pg.Vector2(0, 0)
 VIEWPORT = Viewport()
 
 LAUNCH_COLOR = (200, 200, 200)
@@ -361,11 +367,12 @@ TRAILSIZE = 100
 BASE_SPEED = 9.584e-4 * 100 # <- it runs x100 faster, than it would in real life
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
-                      min=BASE_SPEED, max=400, step=1, initial=BASE_SPEED,
+                      min=BASE_SPEED, max=100, step=1, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
 SCALE = 1/1000000
 G = 6.67e-11
+EPS = 1e3
 
 # TODO Needs tweaking and rethinking
 ROCKET_ACCEL = 5
@@ -373,16 +380,12 @@ ROCKET_ACCEL = 5
 MAX_ROCKET_VELOCITY = 11200e10
 
 
-EARTH = PlanetStatic((W/2, H/2), (0, 0), 6371 * 1000, 5.972e24, (100, 100, 255))
+EARTH = PlanetStatic((W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
 MOON = PlanetDynamic((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
 ROCKET = Rocket(STARTING_POSITION, (0, 0), 100 * 1000, 2000, (255, 100, 255))
 
-
-
-
-#! rocket has to be the last element for proper drawing
 entities = [EARTH, MOON, ROCKET]
 
 while True:
@@ -406,7 +409,7 @@ while True:
 
     for e in entities:
         e.draw()
-    # so rocket stays on top all the time
+    ROCKET.draw()
 
     elapsed_time = time.time() - TIMER
     etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
