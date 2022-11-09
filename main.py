@@ -54,7 +54,8 @@ class Viewport:
 
 # *                                    (m, kg, secs)
 class Entity:  # * all the input parameters are real, except coordinates
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
+    def __init__(self, name, coordinates, init_velocity, radius, mass, color, has_trail=True):
+        self.name = name
         self.coordinates = pg.math.Vector2(coordinates)
         self.position = self.coordinates / SCALE
         self.radius = radius
@@ -78,10 +79,15 @@ class Entity:  # * all the input parameters are real, except coordinates
             return
 
         for e in entities:  # Iterate over all the entities to calculate physics
-            if e == self or type(e) == Rocket:
+            if e == self:
                 continue
 
-            self.acceleration = calculate_force(self, e)
+            d = self.position - e.position
+            if d.length() < self.radius + e.radius + EPS:
+                # print(f'they collide: {self}, {e}')
+                calculate_collision(self, e, d)
+            else:
+                self.acceleration = calculate_gravitational_force(self, e, d)
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt  # type: ignore
@@ -101,16 +107,12 @@ class Entity:  # * all the input parameters are real, except coordinates
 
 
 class Rocket(Entity):
-    def __init__(self, coordinates, init_velocity, radius, color, stage_masses, stage_fuel, stage_engine_thrust, stage='LEO', has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, stage_masses[0], color, has_trail)
-        '''
-        stage names are:
-        LEO - low Earth orbit
-        GTO - geosynchronous transfer orbit or geostationary transfer orbit
-        HEO - heliocentric orbit
-        '''
-        self.stage = stage
+    def __init__(self, name, coordinates, init_velocity, radius, color, stage_masses, stage_fuel, stage_engine_thrust, has_trail=True):
+        super().__init__(name, coordinates, init_velocity, radius, stage_masses[0], color, has_trail)
         self.stage_masses = stage_masses
+        self.stage_fuel = stage_fuel
+        self.stage_engine_thrust = stage_engine_thrust
+        self.current_stage = 0
 
     def move(self, directions):
         # TODO fix
@@ -127,17 +129,17 @@ class Rocket(Entity):
             self.acceleration.x = 1/2**0.5 * dx
             self.acceleration.y = 1/2**0.5 * dy
 
-        self.acceleration *= ROCKET_ACCEL
+        self.acceleration *= self.stage_engine_thrust[self.current_stage]
 
 
 class Planet(Entity):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
+    def __init__(self, name, coordinates, init_velocity, radius, mass, color, has_trail=True):
+        super().__init__(name, coordinates, init_velocity, radius, mass, color, has_trail)
 
 
 class PlanetStatic(Planet):
-    def __init__(self, coordinates, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, pg.Vector2(0, 0), radius, mass, color, has_trail)
+    def __init__(self, name, coordinates, radius, mass, color, has_trail=True):
+        super().__init__(name, coordinates, pg.Vector2(0, 0), radius, mass, color, has_trail)
 
 
 class OnScreenText:
@@ -201,38 +203,19 @@ class Button:
 
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
-    r1 = e1.radius
-    r2 = e2.radius
-
     if type(e1) == Rocket:
-        e1.velocity = e2.velocity
-        e1.position = e2.position + d
-        if d.length() <= r1 + r2:
-            e1.acceleration = pg.Vector2(0, 0)
-    elif type(e2) == Rocket:
-        return
-    elif e1.mass < e2.mass:
-        e1.velocity = e2.velocity
-        e1.position = e2.position
-    # TODO handle this case
-    # elif e1.mass == e2.mass:
-    #     pass
-    else:
-        e2.velocity = e1.velocity
-        e2.position = e1.position
+        e1.velocity += e2.velocity.copy()
+        e1.position = e2.position.copy() + d
+        e1.acceleration += e2.acceleration.copy()
 
 
 # Changes the acceleration of entity1
-def calculate_force(e1, e2):
-    d = e1.position - e2.position
-    r = e1.position.distance_to(e2.position)
+def calculate_gravitational_force(e1, e2, d):
+    r = d.length()
     a = e1.acceleration
+    f = d * (-G * e2.mass / (r * r * r))
+    a += f
 
-    if r < e1.radius + e2.radius + EPS:
-        calculate_collision(e1, e2, d)
-    else:
-        f = d * (-G * e2.mass / (r * r * r))
-        a += f
     return a
 
 
@@ -246,10 +229,10 @@ def show_info():
         if current_distance < max_distance:
             max_distance = current_distance
             to_show = e
-    
+
     if to_show == None:
         return
-    
+
     SHOWING_INFO = to_show
 
 
@@ -257,7 +240,6 @@ def show_info():
 def event_handler(event):
     global VIEWPORT
     global LAUNCH_FROM
-    global LMB_MODE
 
     match event.type:
         case pg.QUIT:
@@ -271,13 +253,13 @@ def event_handler(event):
                         SPEED_SLIDER.value = 0
                     else:
                         SPEED_SLIDER.value = BASE_SPEED
+                case pg.K_RIGHTBRACKET:
+                    SPEED_SLIDER.value = min(SPEED_SLIDER.value + SPEED_SLIDER.step, SPEED_SLIDER.max)
+                case pg.K_LEFTBRACKET:
+                    SPEED_SLIDER.value = max(SPEED_SLIDER.value - SPEED_SLIDER.step, SPEED_SLIDER.min)
                 case pg.K_s:
                     VIEWPORT.shift = pg.Vector2(0, 0)
                     VIEWPORT.update(0)
-                case pg.K_l:
-                    LMB_MODE = "l"
-                case pg.K_i:
-                    LMB_MODE = "i"
         case pg.MOUSEBUTTONDOWN:
             match event.button:
                 case 1:  # LMB to view info of the nearest entity
@@ -311,9 +293,9 @@ microgramma = "microgramma.ttf"
 
 font = microgramma
 
-FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 40)
-FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 90)
-FONTL = pg.font.Font((os.path.join(FONT_PATH, font)), 120)
+FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 18)
+FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 25)
+FONTL = pg.font.Font((os.path.join(FONT_PATH, font)), 45)
 
 RESOLUTION = W, H = (1500, 900)
 SCREEN = pg.display.set_mode(RESOLUTION)
@@ -324,7 +306,7 @@ pg.display.set_icon(ICON)
 CLOCK = pg.time.Clock()
 TIMER = time.time()
 elapsed_time = time.time() - TIMER
-etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 240, 250))
+etime_ost = OnScreenText(str(elapsed_time), FONTL, (W/2, H - 25), color=(240, 240, 250))
 
 BG_COLOR = (0, 3, 10)
 
@@ -334,21 +316,22 @@ MOVE_MAP = {pg.K_UP:    pg.Vector2(0, -1),
             pg.K_LEFT:  pg.Vector2(-1, 0),
             pg.K_RIGHT: pg.Vector2(1,  0)}
 
-INFO_DISTANCE = 20
+INFO_DISTANCE = 50
 SHOWING_INFO = None
+info_ost = OnScreenText(str(''), FONTS, (W/2, 25), color=(240, 240, 250))
 
 INIT_SCALING = 0.1
 INIT_SHIFT = pg.Vector2(-400, 0)
 VIEWPORT = Viewport()
 
-# Max amount of points trail has 
+# Max amount of points trail has
 TRAILSIZE = 100
 
-# * Physics 
+# * Physics
 # whole earth orbit in 156 seconds by moon if SPEED = 36
 # to have real life time speed, you need to set BASE_SPEED to 9.584e-4 => 27d 7h 43m (5,859,780 seconds)
 # the lower the speed, the more accurate the result, speed changes how often calculations happen
-BASE_SPEED = 9.584e-4 #* 100 # <- it runs x100 faster, than it would in real life
+BASE_SPEED = 9.584e-4  # * 100 # <- to run x100 faster, than in real life
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
                       min=BASE_SPEED, max=100, step=1, initial=BASE_SPEED,
@@ -356,15 +339,15 @@ SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
 
 SCALE = 1/1000000
 G = 6.67e-11
-EPS = 1e3
+EPS = 1e2
 
 # TODO Needs tweaking and rethinking
 ROCKET_ACCEL = 7
 # MAX_ROCKET_VELOCITY = 11200
 MAX_ROCKET_VELOCITY = 11200e10
 
-EARTH = PlanetStatic((W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
-MOON = PlanetStatic((W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 200))
+EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
+MOON = PlanetStatic('Moon', (W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 200))
 
 ROCKET_RADIUS = 50
 STARTING_POSITION = (EARTH.coordinates[0] - (EARTH.radius * SCALE + ROCKET_RADIUS * SCALE), EARTH.coordinates[1])
@@ -376,7 +359,8 @@ STAGE_FUEL = [171_800, 32_600, 12_375]
 STAGE_ENGINES_SPEED = [4 * 816.3, 1 * 816.3 + 4 * 47.1, 2 * 78.45]
 # STAGE_MAX_THRUST = []
 
-ROCKET = Rocket(STARTING_POSITION, (0, 0), ROCKET_RADIUS, (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
+ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
+                (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
 
 entities = [EARTH, MOON, ROCKET]
 VIEWPORT.update(0)
@@ -394,19 +378,26 @@ while True:
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
     if dt != 0:
-        pressed = pg.key.get_pressed()
-        ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
-
         for e in entities:
+            if type(e) == Rocket:
+                pressed = pg.key.get_pressed()
+                ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
             e.update()
 
     for e in entities:
         e.draw()
-    ROCKET.draw()
 
     elapsed_time = time.time() - TIMER
     etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
     etime_ost.blit()
+
+    if SHOWING_INFO != None:
+        temp = max(int(str(ROCKET.position.distance_to(SHOWING_INFO.position)).split('.')[0]) - SHOWING_INFO.radius, 0)
+        dist = f'{round(temp/1000, 1)}'
+        info_ost.update(f'Distance from {ROCKET.name} to {SHOWING_INFO.name}: {dist}km')
+    else:
+        info_ost.update('')
+    info_ost.blit()
 
     pw.update(events)
     pg.display.update()
