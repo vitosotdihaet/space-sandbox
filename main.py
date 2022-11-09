@@ -31,8 +31,9 @@ class Viewport:
         self.shifting = False
 
     # TODO make scaling work to the center of screen or to a mouse
-    def scale(self, coord, mouse_pos=pg.Vector2(0, 0)):
-        return pg.Vector2((coord[0] - W/2 + mouse_pos.x) / self.scaling + W/2, (coord[1] - H/2 + mouse_pos.y) / self.scaling + H/2) + self.shift
+    def scale(self, coord):
+        center = pg.Vector2(W/2, H/2)  - self.shift
+        return (coord - center) / self.scaling + center + self.shift
 
     def unscale(self, coord):
         coord = coord - self.shift
@@ -283,7 +284,7 @@ def event_handler(event):
                     VIEWPORT.shifting = False
         case pg.MOUSEMOTION:
             if VIEWPORT.shifting:
-                VIEWPORT.shift += event.rel
+                VIEWPORT.shift += pg.Vector2(event.rel) * VIEWPORT.scaling
                 VIEWPORT.update(0)
 
 
@@ -330,7 +331,7 @@ info_ost = OnScreenText('', FONTS, (W/2, 25), color=(240, 240, 250))
 stage_ost = OnScreenText('stage:', FONTS, (W - 70, 25), color=(240, 240, 30))
 
 INIT_SCALING = 0.1
-INIT_SHIFT = pg.Vector2(-400, 0)
+INIT_SHIFT = pg.Vector2(-200, 0)
 VIEWPORT = Viewport()
 
 # Max amount of points trail has
