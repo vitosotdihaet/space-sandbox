@@ -30,7 +30,6 @@ class Viewport:
         self.shift = INIT_SHIFT
         self.shifting = False
 
-    # TODO make scaling work to the center of screen or to a mouse
     def scale(self, coord):
         center = pg.Vector2(W/2, H/2)  - self.shift
         return (coord - center) / self.scaling + center + self.shift
