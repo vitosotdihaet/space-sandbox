@@ -30,13 +30,14 @@ class Viewport:
         self.shift = INIT_SHIFT
         self.shifting = False
 
-    # TODO make scaling work to the center of screen or to a mouse
     def scale(self, coord, mouse_pos=pg.Vector2(0, 0)):
-        return pg.Vector2((coord[0] - W/2 + mouse_pos.x) / self.scaling + W/2, (coord[1] - H/2 + mouse_pos.y) / self.scaling + H/2) + self.shift
+        center = pg.Vector2(W/2, H/2)  - self.shift
+        return (coord - center) / self.scaling + center + self.shift
 
     def unscale(self, coord):
         coord = coord - self.shift
-        return pg.Vector2((coord[0] - W/2) * self.scaling + W/2, (coord[1] - H/2) * self.scaling + H/2)
+        center = pg.Vector2(W/2, H/2)  - self.shift
+        return (coord - center) * self.scaling + center
 
     def update(self, zoom):
         self.zoom_level += zoom * self.delta_zoom
@@ -303,7 +304,7 @@ def event_handler(event):
                     VIEWPORT.shifting = False
         case pg.MOUSEMOTION:
             if VIEWPORT.shifting:
-                VIEWPORT.shift += event.rel
+                VIEWPORT.shift += pg.Vector2(event.rel) * VIEWPORT.scaling
                 VIEWPORT.update(0)
 
 
