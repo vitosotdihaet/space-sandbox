@@ -112,7 +112,7 @@ class Rocket(Entity):
         self.stage_masses = stage_masses
         self.stage_fuel = stage_fuel
         self.stage_engine_thrust = stage_engine_thrust
-        self.current_stage = 0
+        self.stage = 0
 
     def move(self, directions):
         # TODO fix
@@ -129,7 +129,12 @@ class Rocket(Entity):
             self.acceleration.x = 1/2**0.5 * dx
             self.acceleration.y = 1/2**0.5 * dy
 
-        self.acceleration *= self.stage_engine_thrust[self.current_stage]
+        self.acceleration *= self.stage_engine_thrust[self.stage]
+
+    def change_stage(self):
+        t = min(self.stage + 1, len(self.stage_masses) - 1)
+        self.stage = t
+        self.mass = self.stage_masses[t]
 
 
 class Planet(Entity):
@@ -260,6 +265,8 @@ def event_handler(event):
                 case pg.K_s:
                     VIEWPORT.shift = pg.Vector2(0, 0)
                     VIEWPORT.update(0)
+                case pg.K_n:
+                    ROCKET.change_stage()
         case pg.MOUSEBUTTONDOWN:
             match event.button:
                 case 1:  # LMB to view info of the nearest entity
@@ -318,7 +325,9 @@ MOVE_MAP = {pg.K_UP:    pg.Vector2(0, -1),
 
 INFO_DISTANCE = 50
 SHOWING_INFO = None
-info_ost = OnScreenText(str(''), FONTS, (W/2, 25), color=(240, 240, 250))
+info_ost = OnScreenText('', FONTS, (W/2, 25), color=(240, 240, 250))
+
+stage_ost = OnScreenText('stage:', FONTS, (W - 70, 25), color=(240, 240, 30))
 
 INIT_SCALING = 0.1
 INIT_SHIFT = pg.Vector2(-400, 0)
@@ -334,7 +343,7 @@ TRAILSIZE = 100
 BASE_SPEED = 9.584e-4  # * 100 # <- to run x100 faster, than in real life
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
-                      min=BASE_SPEED, max=100, step=1, initial=BASE_SPEED,
+                      min=BASE_SPEED, max=1, step=0.01, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
 SCALE = 1/1000000
@@ -398,6 +407,9 @@ while True:
     else:
         info_ost.update('')
     info_ost.blit()
+
+    stage_ost.update(f'stage: {ROCKET.stage + 1}')
+    stage_ost.blit()
 
     pw.update(events)
     pg.display.update()
