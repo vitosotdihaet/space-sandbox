@@ -230,7 +230,7 @@ def show_info():
     to_show = None
     max_distance = INFO_DISTANCE
     for e in entities:
-        current_distance = e.coordinates.distance_to(event.pos)
+        current_distance = e.coordinates.distance_to(event.pos) - e.radius * SCALE / VIEWPORT.scaling
         if current_distance < max_distance:
             max_distance = current_distance
             to_show = e
