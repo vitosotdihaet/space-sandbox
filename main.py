@@ -31,7 +31,7 @@ class Viewport:
         self.shifting = False
 
     def scale(self, coord):
-        center = pg.Vector2(W/2, H/2)  - self.shift
+        center = pg.Vector2(W/2, H/2) - self.shift
         return (coord - center) / self.scaling + center + self.shift
 
     def unscale(self, coord):
@@ -225,7 +225,7 @@ def calculate_gravitational_force(e1, e2, d):
 
 
 # Show planet info on LMB
-def show_info():
+def change_showing_info():
     global SHOWING_INFO
     to_show = None
     max_distance = INFO_DISTANCE
@@ -270,7 +270,7 @@ def event_handler(event):
         case pg.MOUSEBUTTONDOWN:
             match event.button:
                 case 1:  # LMB to view info of the nearest entity
-                    show_info()
+                    change_showing_info()
                 case 3:  # RMB to move view
                     VIEWPORT.shifting = True
                 case 4:  # Scroll up to get closer to the Earth
@@ -313,7 +313,11 @@ pg.display.set_icon(ICON)
 CLOCK = pg.time.Clock()
 TIMER = time.time()
 elapsed_time = time.time() - TIMER
-etime_ost = OnScreenText(str(elapsed_time), FONTL, (W/2, H - 25), color=(240, 240, 250))
+etime_ost = OnScreenText(str(elapsed_time), FONTM, (W/2, H - 65), color=(220, 220, 230))
+
+real_elapsed_time = 0
+last_elapsed = elapsed_time
+real_etime_ost = OnScreenText('', FONTL, (W/2, H - 25), color=(240, 240, 250))
 
 BG_COLOR = (0, 3, 10)
 
@@ -337,23 +341,22 @@ VIEWPORT = Viewport()
 TRAILSIZE = 100
 
 # * Physics
-# whole earth orbit in 156 seconds by moon if SPEED = 36
-# to have real life time speed, you need to set BASE_SPEED to 9.584e-4 => 27d 7h 43m (5,859,780 seconds)
-# the lower the speed, the more accurate the result, speed changes how often calculations happen
-BASE_SPEED = 9.584e-4  # * 100 # <- to run x100 faster, than in real life
+# to have real life time speed, you need to set BASE_SPEED to 9.584e-4
+# the lower the speed, the more accurate the result, (speed changes how often calculations happen)
+BASE_SPEED = 9.584e-4
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
                       min=BASE_SPEED, max=1, step=0.01, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
+
+CALC_PER_FRAME = 5
 
 SCALE = 1/1000000
 G = 6.67e-11
 EPS = 1e2
 
 # TODO Needs tweaking and rethinking
-ROCKET_ACCEL = 7
-# MAX_ROCKET_VELOCITY = 11200
-MAX_ROCKET_VELOCITY = 11200e10
+MAX_ROCKET_VELOCITY = 3e8
 
 EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
 MOON = PlanetStatic('Moon', (W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 200))
@@ -362,9 +365,9 @@ ROCKET_RADIUS = 50
 STARTING_POSITION = (EARTH.coordinates[0] - (EARTH.radius * SCALE + ROCKET_RADIUS * SCALE), EARTH.coordinates[1])
 # masses including fuel, payload, etc.
 STAGE_MASSES = [241_000, 65_000, 15_000]
-# fuel mass
+# fuel mass in kg
 STAGE_FUEL = [171_800, 32_600, 12_375]
-# thrust performance in vacuum without additional mass
+# thrust performance in vacuum without additional mass in kilonewtons
 STAGE_ENGINES_SPEED = [4 * 816.3, 1 * 816.3 + 4 * 47.1, 2 * 78.45]
 # STAGE_MAX_THRUST = []
 
@@ -377,7 +380,7 @@ VIEWPORT.update(0)
 while True:
     CLOCK.tick(60)
 
-    dt = CLOCK.tick(60) * SPEED_SLIDER.value
+    dt = CLOCK.tick(60) * SPEED_SLIDER.value / CALC_PER_FRAME
 
     events = pg.event.get()
     for event in events:
@@ -387,19 +390,29 @@ while True:
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
     if dt != 0:
-        for e in entities:
-            if type(e) == Rocket:
-                pressed = pg.key.get_pressed()
-                ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
-            e.update()
+        pressed = pg.key.get_pressed()
+        ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
+        for _ in range(CALC_PER_FRAME):
+            ROCKET.update()
 
     for e in entities:
         e.draw()
 
     elapsed_time = time.time() - TIMER
-    etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
+    temp = str(elapsed_time).split(".")
+    etime_ost.update(f'({temp[0]}.{temp[1][:3]})')
     etime_ost.blit()
 
+    real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / BASE_SPEED)) * int(dt != 0)
+    last_elapsed = elapsed_time
+    days = math.floor(real_elapsed_time / 86400)
+    hours = math.floor(real_elapsed_time / 3600) % 60
+    minutes = math.floor(real_elapsed_time / 60) % 60
+    seconds = math.floor(real_elapsed_time % 60)
+    real_etime_ost.update(f'{days}d {str(hours).rjust(2, "0")}h {str(minutes).rjust(2, "0")}m {str(seconds).rjust(2, "0")}s')
+    real_etime_ost.blit()
+
+    # TODO Add more information about entity (maybe double click changes what exactly is showing)
     if SHOWING_INFO != None:
         temp = max(int(str(ROCKET.position.distance_to(SHOWING_INFO.position)).split('.')[0]) - SHOWING_INFO.radius, 0)
         dist = f'{round(temp/1000, 1)}'
