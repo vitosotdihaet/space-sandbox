@@ -23,7 +23,7 @@ from collections import deque
 
 class Viewport:
     def __init__(self):
-        self.scaling = INIT_SCALING
+        self.scaling = 1
         self.zoom_level = INIT_SCALING
         self.delta_zoom = 0.1
 
@@ -40,7 +40,7 @@ class Viewport:
 
     def update(self, zoom):
         self.zoom_level += zoom * self.delta_zoom
-
+        
         if self.zoom_level < 1:
             self.scaling = 1 / (1 + math.exp(-self.zoom_level))
         else:
@@ -230,10 +230,11 @@ def change_showing_info():
     to_show = None
     max_distance = INFO_DISTANCE
     for e in entities:
-        current_distance = e.coordinates.distance_to(event.pos) - e.radius * SCALE / VIEWPORT.scaling
-        if current_distance < max_distance:
-            max_distance = current_distance
-            to_show = e
+        if type(e) != Rocket:
+            current_distance = e.coordinates.distance_to(event.pos) - e.radius * SCALE / VIEWPORT.scaling
+            if current_distance < max_distance:
+                max_distance = current_distance
+                to_show = e
 
     if to_show == None:
         return
@@ -333,8 +334,8 @@ info_ost = OnScreenText('', FONTS, (W/2, 25), color=(240, 240, 250))
 
 stage_ost = OnScreenText('stage:', FONTS, (W - 70, 25), color=(240, 240, 30))
 
-INIT_SCALING = 0.1
-INIT_SHIFT = pg.Vector2(-200, 0)
+INIT_SCALING = -5
+INIT_SHIFT = pg.Vector2(6.45, 0)
 VIEWPORT = Viewport()
 
 # Max amount of points trail has
@@ -343,8 +344,8 @@ TRAILSIZE = 100
 # * Physics
 # to have real life time speed, you need to set BASE_SPEED to 9.584e-4
 # the lower the speed, the more accurate the result, (speed changes how often calculations happen)
-BASE_SPEED = 9.584e-4
-SPEED = BASE_SPEED
+SPEED_CONST = 2.378e-3
+BASE_SPEED = SPEED_CONST
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
                       min=BASE_SPEED, max=1, step=0.01, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
@@ -375,7 +376,9 @@ ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
                 (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
 
 entities = [EARTH, MOON, ROCKET]
+
 VIEWPORT.update(0)
+# print(VIEWPORT.scaling)
 
 while True:
     CLOCK.tick(60)
@@ -403,12 +406,14 @@ while True:
     etime_ost.update(f'({temp[0]}.{temp[1][:3]})')
     etime_ost.blit()
 
-    real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / BASE_SPEED)) * int(dt != 0)
+    real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / SPEED_CONST)) * int(dt != 0)
     last_elapsed = elapsed_time
+
     days = math.floor(real_elapsed_time / 86400)
     hours = math.floor(real_elapsed_time / 3600) % 60
     minutes = math.floor(real_elapsed_time / 60) % 60
     seconds = math.floor(real_elapsed_time % 60)
+
     real_etime_ost.update(f'{days}d {str(hours).rjust(2, "0")}h {str(minutes).rjust(2, "0")}m {str(seconds).rjust(2, "0")}s')
     real_etime_ost.blit()
 
