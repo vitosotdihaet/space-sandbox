@@ -402,8 +402,7 @@ while True:
         e.draw()
 
     elapsed_time = time.time() - TIMER
-    temp = str(elapsed_time).split(".")
-    etime_ost.update(f'({temp[0]}.{temp[1][:3]})')
+    etime_ost.update(f'({elapsed_time:.3f})')
     etime_ost.blit()
 
     real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / SPEED_CONST)) * int(dt != 0)
@@ -414,14 +413,13 @@ while True:
     minutes = math.floor(real_elapsed_time / 60) % 60
     seconds = math.floor(real_elapsed_time % 60)
 
-    real_etime_ost.update(f'{days}d {str(hours):0>2}h {str(minutes):0>2}m {str(seconds):0>2}s')
+    real_etime_ost.update(f'{days}d {hours:0>2}h {minutes:0>2}m {seconds:0>2}s')
     real_etime_ost.blit()
 
     # TODO Add more information about entity (maybe double click changes what exactly is showing)
     if SHOWING_INFO != None:
-        temp = max(int(str(ROCKET.position.distance_to(SHOWING_INFO.position)).split('.')[0]) - SHOWING_INFO.radius, 0)
-        dist = f'{round(temp/1000, 1)}'
-        info_ost.update(f'Distance from {ROCKET.name} to {SHOWING_INFO.name}: {dist}km')
+        dist = int(ROCKET.position.distance_to(SHOWING_INFO.position)) - SHOWING_INFO.radius
+        info_ost.update(f'Distance from {ROCKET.name} to {SHOWING_INFO.name}: {dist/1000:.1f}km')
     else:
         info_ost.update('')
     info_ost.blit()
