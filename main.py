@@ -409,7 +409,7 @@ while True:
     last_elapsed = elapsed_time
 
     days = math.floor(real_elapsed_time / 86400)
-    hours = math.floor(real_elapsed_time / 3600) % 60
+    hours = math.floor(real_elapsed_time / 3600) % 24
     minutes = math.floor(real_elapsed_time / 60) % 60
     seconds = math.floor(real_elapsed_time % 60)
 
