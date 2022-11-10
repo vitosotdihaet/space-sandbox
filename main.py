@@ -31,12 +31,12 @@ class Viewport:
         self.shifting = False
 
     def scale(self, coord, mouse_pos=pg.Vector2(0, 0)):
-        center = pg.Vector2(W/2, H/2)  - self.shift
+        center = pg.Vector2(W/2, H/2) - self.shift
         return (coord - center) / self.scaling + center + self.shift
 
     def unscale(self, coord):
         coord = coord - self.shift
-        center = pg.Vector2(W/2, H/2)  - self.shift
+        center = pg.Vector2(W/2, H/2) - self.shift
         return (coord - center) * self.scaling + center
 
     def update(self, zoom):
@@ -240,10 +240,10 @@ def show_info():
         if current_distance < max_distance:
             max_distance = current_distance
             to_show = e
-    
+
     if to_show == None:
         return
-    
+
     SHOWING_INFO = to_show
 
 
@@ -265,6 +265,10 @@ def event_handler(event):
                         SPEED_SLIDER.value = 0
                     else:
                         SPEED_SLIDER.value = BASE_SPEED
+                case pg.K_RIGHTBRACKET:
+                    SPEED_SLIDER.value = min(SPEED_SLIDER.value + SPEED_SLIDER.step, SPEED_SLIDER.max)
+                case pg.K_LEFTBRACKET:
+                    SPEED_SLIDER.value = max(SPEED_SLIDER.value - SPEED_SLIDER.step, SPEED_SLIDER.min)
                 case pg.K_s:
                     VIEWPORT.shift = pg.Vector2(0, 0)
                     VIEWPORT.update(0)
@@ -281,7 +285,6 @@ def event_handler(event):
                                 LAUNCH_FROM = event.pos
                         case "i":
                             show_info()
-                            
                 case 3:  # RMB to move view
                     VIEWPORT.shifting = True
                 case 4:  # Scroll up to get closer to the Earth
@@ -296,7 +299,8 @@ def event_handler(event):
                             if LAUNCH_FROM != None:
                                 velocity_vector = (LAUNCH_FROM - pg.Vector2(event.pos)) * LAUNCH_VELOCITY
                                 spawn_point = VIEWPORT.unscale(LAUNCH_FROM)
-                                entities.append(PlanetDynamic(spawn_point, velocity_vector, 1500 * 1000, 4e22, (0, 230, 230)))
+                                entities.append(PlanetDynamic(spawn_point, velocity_vector,
+                                                1500 * 1000, 4e22, (0, 230, 230)))
                                 LAUNCH_FROM = None
                         case "i":
                             pass
@@ -321,9 +325,9 @@ microgramma = "microgramma.ttf"
 
 font = microgramma
 
-FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 40)
-FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 90)
-FONTL = pg.font.Font((os.path.join(FONT_PATH, font)), 120)
+FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 18)
+FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 25)
+FONTL = pg.font.Font((os.path.join(FONT_PATH, font)), 45)
 
 RESOLUTION = W, H = (1500, 900)
 SCREEN = pg.display.set_mode(RESOLUTION)
@@ -334,7 +338,11 @@ pg.display.set_icon(ICON)
 CLOCK = pg.time.Clock()
 TIMER = time.time()
 elapsed_time = time.time() - TIMER
-etime_ost = OnScreenText(str(elapsed_time), FONTS, (W/2, H - 25), color=(240, 240, 250))
+etime_ost = OnScreenText(str(elapsed_time), FONTM, (W/2, H - 65), color=(220, 220, 230))
+
+real_elapsed_time = 0
+last_elapsed = elapsed_time
+real_etime_ost = OnScreenText('', FONTL, (W/2, H - 25), color=(240, 240, 250))
 
 BG_COLOR = (0, 3, 10)
 
@@ -358,18 +366,19 @@ LAUNCH_WIDTH = 1
 LAUNCH_FROM = None
 LAUNCH_VELOCITY = 15
 
-# Max amount of points trail has 
+# Max amount of points trail has
 TRAILSIZE = 100
 
-# * Physics 
-# whole earth orbit in 156 seconds by moon if SPEED = 36
-# to have real life time speed, you need to set BASE_SPEED to 9.584e-4 => 27d 7h 43m (5,859,780 seconds)
+# * Physics
+# to have real life time speed, you need to set BASE_SPEED to 9.584e-4
 # the lower the speed, the more accurate the result, speed changes how often calculations happen
-BASE_SPEED = 9.584e-4 * 100 # <- it runs x100 faster, than it would in real life
+BASE_SPEED = 9.584e-4
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
                       min=BASE_SPEED, max=100, step=1, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
+
+CALC_PER_FRAME = 5
 
 SCALE = 1/1000000
 G = 6.67e-11
@@ -392,7 +401,7 @@ entities = [EARTH, MOON, ROCKET]
 while True:
     CLOCK.tick(60)
 
-    dt = CLOCK.tick(60) * SPEED_SLIDER.value
+    dt = CLOCK.tick(60) * SPEED_SLIDER.value / CALC_PER_FRAME
 
     events = pg.event.get()
     for event in events:
@@ -405,16 +414,27 @@ while True:
         pressed = pg.key.get_pressed()
         ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
 
-        for e in entities:
-            e.update()
+        for _ in range(CALC_PER_FRAME):
+            for e in entities:
+                e.update()
 
     for e in entities:
         e.draw()
     ROCKET.draw()
 
     elapsed_time = time.time() - TIMER
-    etime_ost.update(f'{str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]}')
+    etime_ost.update(f'({str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]})')
     etime_ost.blit()
+
+    real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / BASE_SPEED)) * int(dt != 0)
+    last_elapsed = elapsed_time
+    days = math.floor(real_elapsed_time / 86400)
+    hours = math.floor(real_elapsed_time / 3600) % 24
+    minutes = math.floor(real_elapsed_time / 60) % 60
+    seconds = math.floor(real_elapsed_time % 60)
+    real_etime_ost.update(
+        f'{days}d {str(hours).rjust(2, "0")}h {str(minutes).rjust(2, "0")}m {str(seconds).rjust(2, "0")}s')
+    real_etime_ost.blit()
 
     if LAUNCH_FROM is not None:
         pg.draw.line(SCREEN, LAUNCH_COLOR, LAUNCH_FROM, pg.mouse.get_pos(), LAUNCH_WIDTH)

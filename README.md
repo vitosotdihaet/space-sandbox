@@ -10,6 +10,8 @@ Interactive sandbox for space simulations
 
 `Scroll Up/Down` - Zoom in/out (currently zooms to initial center)
 
+`]/[` - Speed up/down the simulation
+
 `Spacebar` - Stop/start simulation (continues simulation at `BASE_SPEED`)
 
 `Arrow Up/Down/Left/Right` - control rocket
