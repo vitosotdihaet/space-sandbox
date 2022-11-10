@@ -40,7 +40,7 @@ class Viewport:
 
     def update(self, zoom):
         self.zoom_level += zoom * self.delta_zoom
-        
+
         if self.zoom_level < 1:
             self.scaling = 1 / (1 + math.exp(-self.zoom_level))
         else:
@@ -414,7 +414,7 @@ while True:
     minutes = math.floor(real_elapsed_time / 60) % 60
     seconds = math.floor(real_elapsed_time % 60)
 
-    real_etime_ost.update(f'{days}d {str(hours).rjust(2, "0")}h {str(minutes).rjust(2, "0")}m {str(seconds).rjust(2, "0")}s')
+    real_etime_ost.update(f'{days}d {str(hours):0>2}h {str(minutes):0>2}m {str(seconds):0>2}s')
     real_etime_ost.blit()
 
     # TODO Add more information about entity (maybe double click changes what exactly is showing)
