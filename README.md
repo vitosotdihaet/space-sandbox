@@ -10,7 +10,7 @@ Chang'e is a series of Chinese Moon-exploring missions. The goal of this branch 
 
 `Scroll Up/Down` - Zoom in/out (currently zooms to initial center)
 
-`]/[` - Speed up/down 
+`]/[` - Speed up/down the simulation 
 
 `Spacebar` - Stop/start simulation (continues simulation at `BASE_SPEED`)
 
