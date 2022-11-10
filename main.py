@@ -370,9 +370,10 @@ LAUNCH_VELOCITY = 15
 TRAILSIZE = 100
 
 # * Physics
-# to have real life time speed, you need to set BASE_SPEED to 9.584e-4
+# to have real life time speed, you need to set BASE_SPEED to 2.378e-3
 # the lower the speed, the more accurate the result, speed changes how often calculations happen
-BASE_SPEED = 9.584e-4
+SPEED_CONST = 2.378e-3
+BASE_SPEED = SPEED_CONST
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
                       min=BASE_SPEED, max=100, step=1, initial=BASE_SPEED,
@@ -426,14 +427,13 @@ while True:
     etime_ost.update(f'({str(elapsed_time).split(".")[0]}.{str(elapsed_time).split(".")[1][:3]})')
     etime_ost.blit()
 
-    real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / BASE_SPEED)) * int(dt != 0)
+    real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / SPEED_CONST)) * int(dt != 0)
     last_elapsed = elapsed_time
     days = math.floor(real_elapsed_time / 86400)
     hours = math.floor(real_elapsed_time / 3600) % 24
     minutes = math.floor(real_elapsed_time / 60) % 60
     seconds = math.floor(real_elapsed_time % 60)
-    real_etime_ost.update(
-        f'{days}d {str(hours).rjust(2, "0")}h {str(minutes).rjust(2, "0")}m {str(seconds).rjust(2, "0")}s')
+    real_etime_ost.update(f'{days}d {str(hours).rjust(2, "0")}h {str(minutes).rjust(2, "0")}m {str(seconds).rjust(2, "0")}s')
     real_etime_ost.blit()
 
     if LAUNCH_FROM is not None:
