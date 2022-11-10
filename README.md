@@ -2,14 +2,18 @@
 Chang'e is a series of Chinese Moon-exploring missions. The goal of this branch is to create an interactible environment the present mission.
 
 ## Controls 🎮
+`LMB` - Information about nearest entity
+
 `RMB` - Navigate
 
 `S` - Snap back to initial center
 
 `Scroll Up/Down` - Zoom in/out (currently zooms to initial center)
 
+`]/[` - Speed up/down 
+
 `Spacebar` - Stop/start simulation (continues simulation at `BASE_SPEED`)
 
-`Arrow Up/Down/Left/Right` - control rocket
+`Arrow Up/Down/Left/Right` - Control rocket
 
-`I` - Information about nearest entity
+`N` - Next stage
