@@ -209,9 +209,9 @@ class Button:
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
     if type(e1) == Rocket:
-        e1.velocity += e2.velocity.copy()
-        e1.position = e2.position.copy() + d
-        e1.acceleration += e2.acceleration.copy()
+        e1.position = e2.position.copy() + d + d*1e-10
+        if d.length() <= e1.radius + e2.radius:
+            e1.velocity = e2.velocity.copy()
 
 
 # Changes the acceleration of entity1
