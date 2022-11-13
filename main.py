@@ -20,9 +20,6 @@ import os
 from pygame_widgets.slider import Slider
 from collections import deque
 
-from onscreentext import *
-from button import Button
-
 
 class Viewport:
     def __init__(self):
@@ -147,6 +144,66 @@ class Planet(Entity):
 class PlanetStatic(Planet):
     def __init__(self, name, coordinates, radius, mass, color, has_trail=True):
         super().__init__(name, coordinates, pg.Vector2(0, 0), radius, mass, color, has_trail)
+
+
+class OnScreenText:
+    def __init__(self, text, fontsize, coords, antial=True, center=True, color=(0, 0, 0)):
+        self.text = text
+        self.fontsize = fontsize
+        self.color = color
+        self.antial = antial
+        self.coords = coords
+        self.center = center
+
+        self.rendered_text = self.fontsize.render(self.text, self.antial, self.color)
+        if self.center == True:
+            self.rect = self.rendered_text.get_rect(center=self.coords)
+        else:
+            self.rect = coords
+
+    def blit(self):
+        SCREEN.blit(self.rendered_text, self.rect)
+
+    def update(self, text):
+        self.text = text
+        self.rendered_text = self.fontsize.render(self.text, self.antial, self.color)
+        if self.center == True:
+            self.rect = self.rendered_text.get_rect(center=self.coords)
+        else:
+            self.rect = self.coords
+
+
+class Button:
+    def __init__(self, color, x, y, width, height, text=""):
+        self.color = color
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.text = text
+
+    def draw(self, outline=None):
+        if outline:
+            pg.draw.rect(SCREEN, outline, (self.x + 5, self.y + 5, self.width, self.height), 0)
+        pg.draw.rect(SCREEN, self.color, (self.x, self.y, self.width, self.height), 0)
+
+        if self.text != "":
+            lines = self.text.split("\n")
+            for i, line in enumerate(lines, start=1):
+                text = FONTS.render(line, True, (255, 255, 255))
+
+                SCREEN.blit(
+                    text,
+                    (self.x + (self.width/2 - text.get_width()/2),
+                     self.y + (self.height/(len(lines) + 1) * i - text.get_height()/2))
+                )
+
+    def is_over(self, pos):
+        if self.x < pos[0] < self.x + self.width:
+            if self.y < pos[1] < self.y + self.height:
+                return True
+        return False
+
 
 
 # Checks if e1 collides with e2 and changes its parameters
