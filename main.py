@@ -102,7 +102,7 @@ class Entity:  # * all the input parameters are real, except coordinates
         self.coordinates = VIEWPORT.scale(self.position * SCALE)
         if self.has_trail:
             pg.draw.lines(SCREEN, self.color, False, self.trail)
-        pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius / VIEWPORT.scaling * SCALE)
+        pg.draw.circle(SCREEN, self.color, self.coordinates, max(MINIMAL_DRAWING_RADIUS, self.radius / VIEWPORT.scaling * SCALE))
 
 
 class Rocket(Entity):
@@ -337,6 +337,8 @@ stage_ost = OnScreenText('stage:', FONTS, (W - 70, 25), color=(240, 240, 30))
 INIT_SCALING = -5
 INIT_SHIFT = pg.Vector2(6.45, 0)
 VIEWPORT = Viewport()
+
+MINIMAL_DRAWING_RADIUS = 1
 
 # Max amount of points trail has
 TRAILSIZE = 100
