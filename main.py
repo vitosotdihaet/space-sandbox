@@ -224,29 +224,26 @@ def calculate_collision(e1, e2, d):
 
 
 # Changes the acceleration of entity1
-def calculate_force(e1, e2):
-    d = e1.position - e2.position
-    r = e1.position.distance_to(e2.position)
-
+def calculate_gravitational_force(e1, e2, d):
+    r = d.length()
     a = e1.acceleration
-    if r < e1.radius + e2.radius + EPS:
-        calculate_collision(e1, e2, d)
-    else:
-        f = d * (-G * e2.mass / (r * r * r))
-        a += f
+    f = d * (-G * e2.mass / (r * r * r))
+    a += f
+
     return a
 
 
 # Show planet info on LMB
-def show_info():
+def change_showing_info(pos):
     global SHOWING_INFO
     to_show = None
     max_distance = INFO_DISTANCE
     for e in entities:
-        current_distance = e.coordinates.distance_to(event.pos)
-        if current_distance < max_distance:
-            max_distance = current_distance
-            to_show = e
+        if type(e) != Rocket:
+            current_distance = e.coordinates.distance_to(pos) - e.radius * SCALE / VIEWPORT.scaling
+            if current_distance < max_distance:
+                max_distance = current_distance
+                to_show = e
 
     if to_show == None:
         return
@@ -291,7 +288,7 @@ def event_handler(event):
                             if event.pos[0] > 40:  # Check if mouse.pos is not near SPEED_SLIDER
                                 LAUNCH_FROM = event.pos
                         case "i":
-                            show_info()
+                            change_showing_info(event.pos)
                 case 3:  # RMB to move view
                     VIEWPORT.shifting = True
                 case 4:  # Scroll up to get closer to the Earth
@@ -440,12 +437,22 @@ while True:
 
     real_elapsed_time += ((elapsed_time - last_elapsed) * (SPEED_SLIDER.value / SPEED_CONST)) * int(dt != 0)
     last_elapsed = elapsed_time
+
     days = math.floor(real_elapsed_time / 86400)
     hours = math.floor(real_elapsed_time / 3600) % 24
     minutes = math.floor(real_elapsed_time / 60) % 60
     seconds = math.floor(real_elapsed_time % 60)
-    real_etime_ost.update(f'{days}d {str(hours).rjust(2, "0")}h {str(minutes).rjust(2, "0")}m {str(seconds).rjust(2, "0")}s')
+
+    real_etime_ost.update(f'{days}d {hours:0>2}h {minutes:0>2}m {seconds:0>2}s')
     real_etime_ost.blit()
+
+    # TODO Add more information about entity (maybe double click changes what exactly is showing)
+    if SHOWING_INFO != None:
+        dist = int(ROCKET.position.distance_to(SHOWING_INFO.position)) - SHOWING_INFO.radius
+        info_ost.update(f'Distance from {ROCKET.name} to {SHOWING_INFO.name}: {dist/1000:.1f}km')
+    else:
+        info_ost.update('')
+    info_ost.blit()
 
     if LAUNCH_FROM is not None:
         pg.draw.line(SCREEN, LAUNCH_COLOR, LAUNCH_FROM, pg.mouse.get_pos(), LAUNCH_WIDTH)
