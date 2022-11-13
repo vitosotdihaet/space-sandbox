@@ -209,7 +209,7 @@ class Button:
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
     if type(e1) == Rocket:
-        e1.position = e2.position.copy() + d + d*1e-10
+        e1.position = e2.position.copy() + d * (1 + COLLISION_EPS)
         if d.length() <= e1.radius + e2.radius:
             e1.velocity = e2.velocity.copy()
 
@@ -355,6 +355,7 @@ CALC_PER_FRAME = 5
 SCALE = 1/1000000
 G = 6.67e-11
 EPS = 1e2
+COLLISION_EPS = 1e-10
 
 # TODO Needs tweaking and rethinking
 MAX_ROCKET_VELOCITY = 3e8
