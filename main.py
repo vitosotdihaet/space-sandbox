@@ -84,7 +84,6 @@ class Entity:  # * all the input parameters are real, except coordinates
 
             d = self.position - e.position
             if d.length() < self.radius + e.radius + EPS:
-                # print(f'they collide: {self}, {e}')
                 calculate_collision(self, e, d)
             else:
                 self.acceleration = calculate_gravitational_force(self, e, d)
@@ -370,7 +369,6 @@ STAGE_MASSES = [241_000, 65_000, 15_000]
 STAGE_FUEL = [171_800, 32_600, 12_375]
 # thrust performance in vacuum without additional mass in kilonewtons
 STAGE_ENGINES_SPEED = [4 * 816.3, 1 * 816.3 + 4 * 47.1, 2 * 78.45]
-# STAGE_MAX_THRUST = []
 
 ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
                 (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
