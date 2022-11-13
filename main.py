@@ -84,7 +84,11 @@ class Entity:  # * all the input parameters are real, except coordinates
             if e == self:
                 continue
 
-            self.acceleration = calculate_force(self, e)
+            d = self.position - e.position
+            if d.length() < self.radius + e.radius + INTERFERENCE_EPS:
+                calculate_collision(self, e, d)
+            else:
+                self.acceleration = calculate_gravitational_force(self, e, d)
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt  # type: ignore
@@ -203,10 +207,10 @@ class Button:
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
     # TODO? change biggest planet mass, radius, etc. if two collided
-
     if type(e1) == Rocket:
-        e1.velocity = e2.velocity
-        e1.position = e2.position + d
+        e1.position = e2.position.copy() + d * (1 + COLLISION_EPS)
+        if d.length() <= e1.radius + e2.radius:
+            e1.velocity = e2.velocity.copy()
     elif type(e2) == Rocket:
         return
     elif type(e1) != PlanetStatic and e1.mass < e2.mass:
@@ -389,7 +393,8 @@ CALC_PER_FRAME = 5
 
 SCALE = 1/1000000
 G = 6.67e-11
-EPS = 1e3
+INTERFERENCE_EPS = 1e3
+COLLISION_EPS = 1e-10
 
 # TODO Needs tweaking and rethinking
 ROCKET_ACCEL = 5
