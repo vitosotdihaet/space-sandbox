@@ -55,7 +55,9 @@ class Viewport:
 
 # *                                    (m, kg, secs)
 class Entity:  # * all the input parameters are real, except coordinates
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
+    def __init__(self, name, coordinates, init_velocity, radius, mass, color, has_trail=True):
+        self.name = name
+
         self.coordinates = pg.math.Vector2(coordinates)
         self.position = self.coordinates / SCALE
         self.radius = radius
@@ -98,12 +100,13 @@ class Entity:  # * all the input parameters are real, except coordinates
         self.coordinates = VIEWPORT.scale(self.position * SCALE)
         if self.has_trail:
             pg.draw.lines(SCREEN, self.color, False, self.trail)
-        pg.draw.circle(SCREEN, self.color, self.coordinates, self.radius / VIEWPORT.scaling * SCALE)
+        pg.draw.circle(SCREEN, self.color, self.coordinates, max(
+            MINIMAL_DRAWING_RADIUS, self.radius / VIEWPORT.scaling * SCALE))
 
 
 class Rocket(Entity):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
+    def __init__(self, name, coordinates, init_velocity, radius, mass, color, has_trail=True):
+        super().__init__(name, coordinates, init_velocity, radius, mass, color, has_trail)
 
     def move(self, directions):
         # TODO fix
@@ -124,18 +127,18 @@ class Rocket(Entity):
 
 
 class Planet(Entity):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
+    def __init__(self, name, coordinates, init_velocity, radius, mass, color, has_trail=True):
+        super().__init__(name, coordinates, init_velocity, radius, mass, color, has_trail)
 
 
 class PlanetStatic(Planet):
-    def __init__(self, coordinates, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, pg.Vector2(0, 0), radius, mass, color, has_trail)
+    def __init__(self, name, coordinates, radius, mass, color, has_trail=True):
+        super().__init__(name, coordinates, pg.Vector2(0, 0), radius, mass, color, has_trail)
 
 
 class PlanetDynamic(Planet):
-    def __init__(self, coordinates, init_velocity, radius, mass, color, has_trail=True):
-        super().__init__(coordinates, init_velocity, radius, mass, color, has_trail)
+    def __init__(self, name, coordinates, init_velocity, radius, mass, color, has_trail=True):
+        super().__init__(name, coordinates, init_velocity, radius, mass, color, has_trail)
 
 
 class OnScreenText:
@@ -299,7 +302,7 @@ def event_handler(event):
                             if LAUNCH_FROM != None:
                                 velocity_vector = (LAUNCH_FROM - pg.Vector2(event.pos)) * LAUNCH_VELOCITY
                                 spawn_point = VIEWPORT.unscale(LAUNCH_FROM)
-                                entities.append(PlanetDynamic(spawn_point, velocity_vector,
+                                entities.append(PlanetDynamic(f'Spawned Planet №{len(entities) - 3}', spawn_point, velocity_vector,
                                                 1500 * 1000, 4e22, (0, 230, 230)))
                                 LAUNCH_FROM = None
                         case "i":
@@ -354,12 +357,15 @@ MOVE_MAP = {pg.K_UP:    pg.Vector2(0, -1),
 
 LMB_MODE = "i"
 
-INFO_DISTANCE = 20
+INFO_DISTANCE = 50
 SHOWING_INFO = None
+info_ost = OnScreenText('', FONTS, (W/2, 25), color=(240, 240, 250))
 
 INIT_SCALING = 1
 INIT_SHIFT = pg.Vector2(0, 0)
 VIEWPORT = Viewport()
+
+MINIMAL_DRAWING_RADIUS = 1
 
 LAUNCH_COLOR = (200, 200, 200)
 LAUNCH_WIDTH = 1
@@ -391,11 +397,11 @@ ROCKET_ACCEL = 5
 MAX_ROCKET_VELOCITY = 11200e10
 
 
-EARTH = PlanetStatic((W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
-MOON = PlanetDynamic((W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, (200, 200, 200))
+EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
+MOON = PlanetDynamic('Moon', (W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
-ROCKET = Rocket(STARTING_POSITION, (0, 0), 100 * 1000, 2000, (255, 100, 255))
+ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), 50, 2000, (255, 100, 255))
 
 entities = [EARTH, MOON, ROCKET]
 
