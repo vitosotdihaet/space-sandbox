@@ -380,7 +380,6 @@ ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
 entities = [EARTH, MOON, ROCKET]
 
 VIEWPORT.update(0)
-# print(VIEWPORT.scaling)
 
 while True:
     CLOCK.tick(60)
