@@ -102,7 +102,8 @@ class Entity:  # * all the input parameters are real, except coordinates
         self.coordinates = VIEWPORT.scale(self.position * SCALE)
         if self.has_trail:
             pg.draw.lines(SCREEN, self.color, False, self.trail)
-        pg.draw.circle(SCREEN, self.color, self.coordinates, max(MINIMAL_DRAWING_RADIUS, self.radius / VIEWPORT.scaling * SCALE))
+        pg.draw.circle(SCREEN, self.color, self.coordinates, max(
+            MINIMAL_DRAWING_RADIUS, self.radius / VIEWPORT.scaling * SCALE))
 
 
 class Rocket(Entity):
@@ -129,11 +130,14 @@ class Rocket(Entity):
             self.acceleration.y = 1/2**0.5 * dy
 
         self.acceleration *= self.stage_engine_thrust[self.stage]
+        # if self.acceleration != pg.Vector2(0, 0):
+        #     self.mass -= 1
+        #     self.stage_fuel[self.stage] -= 1
+        #     self.stage_masses[self.stage] -= 1
 
     def change_stage(self):
-        t = min(self.stage + 1, len(self.stage_masses) - 1)
-        self.stage = t
-        self.mass = self.stage_masses[t]
+        self.stage = min(self.stage + 1, len(self.stage_masses) - 1)
+        self.mass = self.stage_masses[self.stage]
 
 
 class Planet(Entity):
@@ -344,8 +348,8 @@ MINIMAL_DRAWING_RADIUS = 1
 TRAILSIZE = 100
 
 # * Physics
-# to have real life time speed, you need to set BASE_SPEED to 9.584e-4
-# the lower the speed, the more accurate the result, (speed changes how often calculations happen)
+# to have real life time speed, you need to set BASE_SPEED to 2.378e-3
+# the lower the speed, the more accurate the result, (speed determines how often calculations happen)
 SPEED_CONST = 2.378e-3
 BASE_SPEED = SPEED_CONST
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
@@ -359,7 +363,6 @@ G = 6.67e-11
 EPS = 1e2
 COLLISION_EPS = 1e-10
 
-# TODO Needs tweaking and rethinking
 MAX_ROCKET_VELOCITY = 3e8
 
 EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
