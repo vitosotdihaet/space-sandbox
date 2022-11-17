@@ -314,7 +314,11 @@ INFO_DISTANCE = 50
 SHOWING_INFO = None
 info_ost = OnScreenText('', FONTS, (W/2, 25), color=(240, 240, 250))
 
-stage_ost = OnScreenText('stage:', FONTS, (W - 70, 25), color=(240, 240, 30))
+stage_ost = OnScreenText('', FONTS, (W - 15, 25), anchor=OnScreenText.MR, color=(240, 240, 30))
+
+rocket_velocity_ost = OnScreenText('', FONTS, (W - 15, 45), anchor=OnScreenText.MR, color=(240, 240, 250))
+
+fuel_at_stage_ost = OnScreenText('', FONTS, (W - 15, 65), anchor=OnScreenText.MR, color=(240, 240, 250))
 
 INIT_SCALING = -5
 INIT_SHIFT = pg.Vector2(6.45, 0)
@@ -353,7 +357,7 @@ STAGE_MASSES = [241_000, 65_000, 15_000]
 # fuel mass in kg
 STAGE_FUEL = [171_800, 32_600, 12_375]
 # thrust performance in vacuum without additional mass in kilonewtons
-STAGE_ENGINES_SPEED = [4 * 816.3, 1 * 816.3 + 4 * 47.1, 2 * 78.45]
+STAGE_ENGINES_SPEED = [2_961.6, 742 + 47.1, 161.17]
 
 ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
                 (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
@@ -408,6 +412,12 @@ while True:
 
     stage_ost.update(f'stage: {ROCKET.stage + 1}')
     stage_ost.blit()
+
+    rocket_velocity_ost.update(f'{ROCKET.velocity.length():.1f} m/s')
+    rocket_velocity_ost.blit()
+
+    fuel_at_stage_ost.update(f'{ROCKET.stage_fuel[ROCKET.stage]:.1f} l')
+    fuel_at_stage_ost.blit()
 
     pw.update(events)
     pg.display.update()
