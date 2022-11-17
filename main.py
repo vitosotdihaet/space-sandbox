@@ -151,19 +151,31 @@ class PlanetStatic(Planet):
 
 
 class OnScreenText:
-    def __init__(self, text, fontsize, coords, antial=True, center=True, color=(0, 0, 0)):
+    # constants for anchoring onscreentext
+    TL = (-1, -1)
+    TC = (0, -1)
+    TR = (1, -1)
+
+    ML = (-1, 0)
+    MC = (0, 0)
+    MR = (1, 0)
+
+    BL = (-1, 1)
+    BC = (0, 1)
+    BR = (1, 1)
+
+    def __init__(self, text, fontsize, coords, antial=True, anchor=(0, 0), color=(0, 0, 0)):
         self.text = text
         self.fontsize = fontsize
         self.color = color
         self.antial = antial
         self.coords = coords
-        self.center = center
+        self.anchor = anchor
 
         self.rendered_text = self.fontsize.render(self.text, self.antial, self.color)
-        if self.center == True:
-            self.rect = self.rendered_text.get_rect(center=self.coords)
-        else:
-            self.rect = coords
+        self.rect = self.rendered_text.get_rect(center=self.coords)
+        self.rect.x -= self.anchor[0] * self.rect.width//2
+        self.rect.y -= self.anchor[1] * self.rect.height//2
 
     def blit(self):
         SCREEN.blit(self.rendered_text, self.rect)
@@ -171,43 +183,9 @@ class OnScreenText:
     def update(self, text):
         self.text = text
         self.rendered_text = self.fontsize.render(self.text, self.antial, self.color)
-        if self.center == True:
-            self.rect = self.rendered_text.get_rect(center=self.coords)
-        else:
-            self.rect = self.coords
-
-
-class Button:
-    def __init__(self, color, x, y, width, height, text=""):
-        self.color = color
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.text = text
-
-    def draw(self, outline=None):
-        if outline:
-            pg.draw.rect(SCREEN, outline, (self.x + 5, self.y + 5, self.width, self.height), 0)
-        pg.draw.rect(SCREEN, self.color, (self.x, self.y, self.width, self.height), 0)
-
-        if self.text != "":
-            lines = self.text.split("\n")
-            for i, line in enumerate(lines, start=1):
-                text = FONTS.render(line, True, (255, 255, 255))
-
-                SCREEN.blit(
-                    text,
-                    (self.x + (self.width/2 - text.get_width()/2),
-                     self.y + (self.height/(len(lines) + 1) * i - text.get_height()/2))
-                )
-
-    def is_over(self, pos):
-        if self.x < pos[0] < self.x + self.width:
-            if self.y < pos[1] < self.y + self.height:
-                return True
-        return False
-
+        self.rect = self.rendered_text.get_rect(center=self.coords)
+        self.rect.x -= self.anchor[0] * self.rect.width//2
+        self.rect.y -= self.anchor[1] * self.rect.height//2
 
 
 # Checks if e1 collides with e2 and changes its parameters
