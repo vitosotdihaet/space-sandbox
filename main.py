@@ -222,6 +222,8 @@ def change_showing_info():
 
     if to_show == None:
         return
+    elif to_show == SHOWING_INFO:
+        to_show = None
 
     SHOWING_INFO = to_show
 
@@ -289,7 +291,7 @@ FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 18)
 FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 25)
 FONTL = pg.font.Font((os.path.join(FONT_PATH, font)), 45)
 
-RESOLUTION = W, H = (1500, 900)
+RESOLUTION = W, H = (1600, 900)
 SCREEN = pg.display.set_mode(RESOLUTION)
 SCREEN_SURF = pg.Surface(RESOLUTION)
 ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
@@ -349,7 +351,7 @@ COLLISION_EPS = 1e-10
 
 MAX_ROCKET_VELOCITY = 3e8
 
-EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
+EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (80, 80, 230))
 MOON = PlanetStatic('Moon', (W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 200))
 
 ROCKET_RADIUS = 50
