@@ -274,6 +274,27 @@ def event_handler(event):
                 VIEWPORT.update(0)
 
 
+def draw_arrow(pos, vec, length, color=(255, 255, 255), width=5):
+    l = vec.length()
+    if l > VELOCITY_SHOW_EPS:
+        end = pos + (vec / vec.length()) * length
+    else:
+        end = pos
+    seq = [pos, end]
+    pg.draw.polygon(SCREEN, color, seq, width)
+
+
+def draw_that_thing(rect, vec, bg_color=(240, 240, 240), fg_color=(20, 20, 20), arrow_color=(255, 255, 255)):
+    nr = pg.Rect(rect.left + 5, rect.top + 5, rect.width - 10, rect.height - 10)
+    pg.draw.rect(SCREEN, bg_color, rect, border_radius=50)
+    pg.draw.rect(SCREEN, fg_color, nr, border_radius=45)
+
+    center = pg.Vector2(rect.x + rect.width / 2, rect.y + rect.height / 2)
+    arrow_length = (nr.width / 2) * 9 / 10
+    
+    draw_arrow(center, vec, arrow_length, arrow_color, ARROW_WIDTH)
+
+
 pg.init()
 
 # * Application options
@@ -320,12 +341,26 @@ info_ost = OnScreenText('', FONTS, (W/2, 25), color=(240, 240, 250))
 
 stage_ost = OnScreenText('', FONTS, (W - 15, 25), anchor=OnScreenText.MR, color=(240, 240, 30))
 
-rocket_velocity_ost = OnScreenText('', FONTS, (W - 15, 45), anchor=OnScreenText.MR, color=(240, 240, 250))
+# x, y, width, height
+COMPASS_COORDS = (W - 200, H - 200, 190, 190)
 
-fuel_at_stage_ost = OnScreenText('', FONTS, (W - 15, 65), anchor=OnScreenText.MR, color=(240, 240, 250))
+VELOCITY_COLOR = (255, 100, 255)
+ACCELERATION_COLOR = (100, 230, 30)
 
-INIT_SCALING = -5
-INIT_SHIFT = pg.Vector2(6.45, 0)
+fuel_ost = OnScreenText('FUEL:', FONTS, (W - 200, H - 330), anchor=OnScreenText.BL, color=(240, 240, 250))
+fuel_at_stage_ost = OnScreenText('', FONTS, (W - 15, H - 310), anchor=OnScreenText.BR, color=(240, 240, 250))
+
+acceleration_ost = OnScreenText('ACCELERATION:', FONTS, (W - 200, H - 280), anchor=OnScreenText.BL, color=ACCELERATION_COLOR)
+rocket_acceleration_ost = OnScreenText('', FONTS, (W - 15, H - 260), anchor=OnScreenText.BR, color=ACCELERATION_COLOR)
+
+velocity_ost = OnScreenText('VELOCITY:', FONTS, (W - 200, H - 230), anchor=OnScreenText.BL, color=VELOCITY_COLOR)
+rocket_velocity_ost = OnScreenText('', FONTS, (W - 10, H - 210), anchor=OnScreenText.BR, color=VELOCITY_COLOR)
+
+ARROW_WIDTH = 5
+VELOCITY_SHOW_EPS = 0.001
+
+INIT_SCALING = -7
+INIT_SHIFT = pg.Vector2(6.43, 0)
 VIEWPORT = Viewport()
 
 MINIMAL_DRAWING_RADIUS = 1
@@ -419,11 +454,21 @@ while True:
     stage_ost.update(f'stage: {ROCKET.stage + 1}')
     stage_ost.blit()
 
+    fuel_ost.blit()
+    fuel_at_stage_ost.update(f'{ROCKET.stage_fuel[ROCKET.stage]:.1f} l')
+    fuel_at_stage_ost.blit()
+
+    acceleration_ost.blit()
+    rocket_acceleration_ost.update(f'{current_acceleration.length():.1f} m/s^2')
+    rocket_acceleration_ost.blit()
+
+    velocity_ost.blit()
     rocket_velocity_ost.update(f'{ROCKET.velocity.length():.1f} m/s')
     rocket_velocity_ost.blit()
 
-    fuel_at_stage_ost.update(f'{ROCKET.stage_fuel[ROCKET.stage]:.1f} l')
-    fuel_at_stage_ost.blit()
+    draw_that_thing(pg.Rect(COMPASS_COORDS), ROCKET.velocity, arrow_color=VELOCITY_COLOR)
+    c = pg.Vector2(COMPASS_COORDS[0] + COMPASS_COORDS[2] / 2, COMPASS_COORDS[1] + COMPASS_COORDS[3] / 2)
+    draw_arrow(c, current_acceleration, COMPASS_COORDS[2] / 3, color=ACCELERATION_COLOR)
 
     pw.update(events)
     pg.display.update()
