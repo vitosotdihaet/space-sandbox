@@ -74,6 +74,7 @@ class Entity:  # * all the input parameters are real, except coordinates
             self.has_trail = False
 
     def update(self):
+        global current_acceleration
         if type(self) == PlanetStatic:
             self.coordinates = VIEWPORT.scale(self.position * SCALE)
             return
@@ -90,6 +91,7 @@ class Entity:  # * all the input parameters are real, except coordinates
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt  # type: ignore
+        current_acceleration += self.acceleration
         self.acceleration = pg.Vector2(0, 0)
 
         temp = self.position * SCALE
