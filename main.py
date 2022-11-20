@@ -129,11 +129,11 @@ class Rocket(Entity):
             self.acceleration.x = 1/2**0.5 * dx
             self.acceleration.y = 1/2**0.5 * dy
 
-        self.acceleration *= self.stage_engine_thrust[self.stage]
-        # if self.acceleration != pg.Vector2(0, 0):
-        #     self.mass -= 1
-        #     self.stage_fuel[self.stage] -= 1
-        #     self.stage_masses[self.stage] -= 1
+        self.acceleration *= (self.stage_engine_thrust[self.stage] - self.mass) / 10000
+        if self.acceleration != pg.Vector2(0, 0):
+            self.mass -= 1
+            self.stage_fuel[self.stage] -= 1
+            self.stage_masses[self.stage] -= 1
 
     def change_stage(self):
         self.stage = min(self.stage + 1, len(self.stage_masses) - 1)
@@ -356,8 +356,8 @@ STARTING_POSITION = (EARTH.coordinates[0] - (EARTH.radius * SCALE + ROCKET_RADIU
 STAGE_MASSES = [241_000, 65_000, 15_000]
 # fuel mass in kg
 STAGE_FUEL = [171_800, 32_600, 12_375]
-# thrust performance in vacuum without additional mass in kilonewtons
-STAGE_ENGINES_SPEED = [2_961.6, 742 + 47.1, 161.17]
+# thrust performance in vacuum without additional mass in newtons
+STAGE_ENGINES_SPEED = [2_961_600, 789_100, 161_170]
 
 ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
                 (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
@@ -378,11 +378,13 @@ while True:
     SCREEN_SURF.fill(BG_COLOR)
     SCREEN.blit(SCREEN_SURF, (0, 0))
 
+    current_acceleration = pg.Vector2(0, 0)
     if dt != 0:
-        pressed = pg.key.get_pressed()
-        ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
         for _ in range(CALC_PER_FRAME):
             ROCKET.update()
+            pressed = pg.key.get_pressed()
+            ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
+    current_acceleration /= CALC_PER_FRAME
 
     for e in entities:
         e.draw()
