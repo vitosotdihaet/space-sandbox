@@ -313,7 +313,7 @@ IMG_PATH = os.path.join(RES_PATH, "images")
 hp = "HPSimplified_Rg.ttf"
 microgramma = "microgramma.ttf"
 
-font = hp
+font = microgramma
 
 FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 18)
 FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 25)
