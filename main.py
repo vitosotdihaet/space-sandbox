@@ -118,24 +118,30 @@ class Rocket(Entity):
 
     def move(self, directions):
         # TODO fix
-        if self.velocity.length() > MAX_ROCKET_VELOCITY:
+        if self.velocity.length() > MAX_VELOCITY:
             return
 
         self.acceleration = pg.Vector2(0, 0)
-        for e in directions:
-            self.acceleration += e
-
-        dx = self.acceleration.x
-        dy = self.acceleration.y
-        if abs(dx) == abs(dy) == 1:  # Check for diagonal movement
-            self.acceleration.x = 1/2**0.5 * dx
-            self.acceleration.y = 1/2**0.5 * dy
-
-        self.acceleration *= (self.stage_engine_thrust[self.stage] - self.mass) / 10000
+        
+        if self.stage_fuel[self.stage] > 0.001:
+            for e in directions:
+                self.acceleration += e
+        
+            dx = self.acceleration.x
+            dy = self.acceleration.y
+            if abs(dx) == abs(dy) == 1:  # Check for diagonal movement
+                self.acceleration.x = 1/2**0.5 * dx
+                self.acceleration.y = 1/2**0.5 * dy
+        
+            self.acceleration *= (self.stage_engine_thrust[self.stage] - self.mass) / 50000
+        
         if self.acceleration != pg.Vector2(0, 0):
-            self.mass -= 1
-            self.stage_fuel[self.stage] -= 1
-            self.stage_masses[self.stage] -= 1
+            temp = min(1000, self.stage_fuel[self.stage] + 1) * dt
+            self.mass -= temp
+            self.stage_fuel[self.stage] -= temp
+            self.stage_masses[self.stage] -= temp
+            if self.stage_fuel[self.stage] <= 0.001:
+                self.change_stage()
 
     def change_stage(self):
         self.stage = min(self.stage + 1, len(self.stage_masses) - 1)
@@ -166,7 +172,7 @@ class OnScreenText:
     BC = (0, 1)
     BR = (1, 1)
 
-    def __init__(self, text, fontsize, coords, antial=True, anchor=(0, 0), color=(0, 0, 0)):
+    def __init__(self, text, fontsize, coords, antial=True, anchor=MC, color=(0, 0, 0)):
         self.text = text
         self.fontsize = fontsize
         self.color = color
@@ -306,7 +312,7 @@ IMG_PATH = os.path.join(RES_PATH, "images")
 hp = "HPSimplified_Rg.ttf"
 microgramma = "microgramma.ttf"
 
-font = microgramma
+font = hp
 
 FONTS = pg.font.Font((os.path.join(FONT_PATH, font)), 18)
 FONTM = pg.font.Font((os.path.join(FONT_PATH, font)), 25)
@@ -374,7 +380,7 @@ TRAILSIZE = 100
 SPEED_CONST = 2.378e-3
 BASE_SPEED = SPEED_CONST
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
-                      min=BASE_SPEED, max=1, step=0.01, initial=BASE_SPEED,
+                      min=BASE_SPEED, max=1 * 50, step=0.01 * 50, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
 CALC_PER_FRAME = 5
@@ -384,7 +390,7 @@ G = 6.67e-11
 EPS = 1e2
 COLLISION_EPS = 1e-10
 
-MAX_ROCKET_VELOCITY = 3e8
+MAX_VELOCITY = 3e8
 
 EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (80, 80, 230))
 MOON = PlanetStatic('Moon', (W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 200))
@@ -443,7 +449,7 @@ while True:
     real_etime_ost.update(f'{days}d {hours:0>2}h {minutes:0>2}m {seconds:0>2}s')
     real_etime_ost.blit()
 
-    # TODO Add more information about entity (maybe double click changes what exactly is showing)
+    #? TODO Add more information about entity (maybe double click changes what exactly is showing)
     if SHOWING_INFO != None:
         dist = int(ROCKET.position.distance_to(SHOWING_INFO.position)) - SHOWING_INFO.radius
         info_ost.update(f'Distance from {ROCKET.name} to {SHOWING_INFO.name}: {dist/1000:.1f}km')
