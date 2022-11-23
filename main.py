@@ -123,7 +123,7 @@ class Rocket(Entity):
 
         self.acceleration = pg.Vector2(0, 0)
         
-        if self.stage_fuel[self.stage] > 0.001:
+        if self.stage_fuel[self.stage] > 0:
             for e in directions:
                 self.acceleration += e
         
@@ -140,7 +140,8 @@ class Rocket(Entity):
             self.mass = max(0, self.mass - temp)
             self.stage_fuel[self.stage] = max(0, self.stage_fuel[self.stage] - temp)
             self.stage_masses[self.stage] = max(0, self.stage_masses[self.stage] - temp)
-            # if self.stage_fuel[self.stage] <= 0.001:
+            # Uncomment to change stages when fuel is 0
+            # if self.stage_fuel[self.stage] <= 0:
             #     self.change_stage()
 
     def change_stage(self):
