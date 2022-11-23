@@ -137,11 +137,11 @@ class Rocket(Entity):
         
         if self.acceleration != pg.Vector2(0, 0):
             temp = min(1000, self.stage_fuel[self.stage] + 1) * dt
-            self.mass -= temp
-            self.stage_fuel[self.stage] -= temp
-            self.stage_masses[self.stage] -= temp
-            if self.stage_fuel[self.stage] <= 0.001:
-                self.change_stage()
+            self.mass = max(0, self.mass - temp)
+            self.stage_fuel[self.stage] = max(0, self.stage_fuel[self.stage] - temp)
+            self.stage_masses[self.stage] = max(0, self.stage_masses[self.stage] - temp)
+            # if self.stage_fuel[self.stage] <= 0.001:
+            #     self.change_stage()
 
     def change_stage(self):
         self.stage = min(self.stage + 1, len(self.stage_masses) - 1)
@@ -380,7 +380,7 @@ TRAILSIZE = 100
 SPEED_CONST = 2.378e-3
 BASE_SPEED = SPEED_CONST
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
-                      min=BASE_SPEED, max=1 * 50, step=0.01 * 50, initial=BASE_SPEED,
+                      min=BASE_SPEED, max=1 * 10, step=0.01 * 10, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
 CALC_PER_FRAME = 5
