@@ -253,13 +253,15 @@ def event_handler(event):
                     else:
                         SPEED_SLIDER.value = BASE_SPEED
                 case pg.K_RIGHTBRACKET:
-                    SPEED_SLIDER.value = min(SPEED_SLIDER.value + SPEED_SLIDER.step, SPEED_SLIDER.max)
+                    SPEED_SLIDER.value = min(SPEED_SLIDER.value + SPEED_SLIDER.step * 2, SPEED_SLIDER.max)
                 case pg.K_LEFTBRACKET:
-                    SPEED_SLIDER.value = max(SPEED_SLIDER.value - SPEED_SLIDER.step, SPEED_SLIDER.min)
+                    SPEED_SLIDER.value = max(SPEED_SLIDER.value - SPEED_SLIDER.step * 2, SPEED_SLIDER.min)
                 case pg.K_s:
                     VIEWPORT.shift = pg.Vector2(0, 0)
                     VIEWPORT.update(0)
                 case pg.K_n:
+                    if SAVE_MOVES:
+                        save_to.write(f'{real_elapsed_time:.4f} N_\n{real_elapsed_time:.4f} []_\n')
                     ROCKET.change_stage()
         case pg.MOUSEBUTTONDOWN:
             match event.button:
@@ -375,6 +377,23 @@ MINIMAL_DRAWING_RADIUS = 1
 # Max amount of points trail has
 TRAILSIZE = 100
 
+# True if you want to save your flight
+SAVE_MOVES = False
+save_to = open('main.py')
+if SAVE_MOVES:
+    save_to = open(f'flight_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}.txt', 'w')
+    save_to.write('0 []_\n')
+last_moves = []
+
+# True if you want to read a flight
+READ_MOVES = True
+read_from = open('main.py')
+read_moves = []
+read_off = 0
+if READ_MOVES:  # Enter name of flight here
+    read_from = open('flight_2022-11-27_15-06-27.txt')
+    read_moves = read_from.readlines()
+
 # * Physics
 # to have real life time speed, you need to set BASE_SPEED to 2.378e-3
 # the lower the speed, the more accurate the result, (speed determines how often calculations happen)
@@ -428,8 +447,43 @@ while True:
     if dt != 0:
         for _ in range(CALC_PER_FRAME):
             ROCKET.update()
-            pressed = pg.key.get_pressed()
-            ROCKET.move([MOVE_MAP[key] for key in MOVE_MAP if pressed[key]])
+            pressed = []
+            if READ_MOVES:
+                curr_read = read_moves[read_off].replace('\n', '').split(maxsplit=1)
+                t = float(curr_read[0])
+
+                next_read_off = min(read_off + 1, len(read_moves) - 1)
+                if float(read_moves[next_read_off].replace('\n', '').split(maxsplit=1)[0]) < real_elapsed_time:
+                    read_off = next_read_off
+                list_of_coords = curr_read[1].split('_')[:-1]
+
+                for s in list_of_coords:
+                    s = s.replace('[', '').replace(']', '').replace(',', '')
+                    if s == 'N':
+                        ROCKET.change_stage()
+                    elif s != '':
+                        v = pg.Vector2(int(s[:2]), int(s[-2:]))
+                        pressed.append(v)
+                moves = pressed
+            else:
+                pressed = pg.key.get_pressed()
+                moves = [MOVE_MAP[key] for key in MOVE_MAP if pressed[key]]
+
+            ROCKET.move(moves)
+
+            if SAVE_MOVES:
+                if last_moves != moves:
+                    save_to.write(f'{real_elapsed_time:.4f} ')
+
+                    if len(moves) == 0:
+                        save_to.write('[]_')
+
+                    for key in moves:
+                        save_to.write(f'{key}_')
+
+                    save_to.write('\n')
+                last_moves = moves.copy()
+
     current_acceleration /= CALC_PER_FRAME
 
     for e in entities:
