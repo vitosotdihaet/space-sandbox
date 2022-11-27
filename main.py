@@ -448,6 +448,7 @@ while True:
         for _ in range(CALC_PER_FRAME):
             ROCKET.update()
             pressed = []
+
             if READ_MOVES:
                 curr_read = read_moves[read_off].replace('\n', '').split(maxsplit=1)
                 t = float(curr_read[0])
@@ -469,8 +470,6 @@ while True:
                 pressed = pg.key.get_pressed()
                 moves = [MOVE_MAP[key] for key in MOVE_MAP if pressed[key]]
 
-            ROCKET.move(moves)
-
             if SAVE_MOVES:
                 if last_moves != moves:
                     save_to.write(f'{real_elapsed_time:.4f} ')
@@ -483,6 +482,8 @@ while True:
 
                     save_to.write('\n')
                 last_moves = moves.copy()
+
+            ROCKET.move(moves)
 
     current_acceleration /= CALC_PER_FRAME
 
