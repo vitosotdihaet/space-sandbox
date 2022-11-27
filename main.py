@@ -378,7 +378,7 @@ MINIMAL_DRAWING_RADIUS = 1
 TRAILSIZE = 100
 
 # True if you want to save your flight
-SAVE_MOVES = False
+SAVE_MOVES = True
 save_to = open('main.py')
 if SAVE_MOVES:
     save_to = open(f'flight_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}.txt', 'w')
@@ -386,7 +386,7 @@ if SAVE_MOVES:
 last_moves = []
 
 # True if you want to read a flight
-READ_MOVES = True
+READ_MOVES = False
 read_from = open('main.py')
 read_moves = []
 read_off = 0
