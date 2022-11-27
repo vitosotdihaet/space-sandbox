@@ -451,10 +451,11 @@ while True:
 
             if READ_MOVES:
                 curr_read = read_moves[read_off].replace('\n', '').split(maxsplit=1)
-                t = float(curr_read[0])
 
                 next_read_off = min(read_off + 1, len(read_moves) - 1)
-                if float(read_moves[next_read_off].replace('\n', '').split(maxsplit=1)[0]) < real_elapsed_time:
+                next_t = float(read_moves[next_read_off].replace('\n', '').split(maxsplit=1)[0])
+
+                if next_t < real_elapsed_time:
                     read_off = next_read_off
                 list_of_coords = curr_read[1].split('_')[:-1]
 
