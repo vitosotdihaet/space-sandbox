@@ -22,10 +22,10 @@ from collections import deque
 
 
 class Viewport:
-    def __init__(self):
+    def __init__(self, delta_zoom=0.1):
         self.scaling = 1
         self.zoom_level = INIT_SCALING
-        self.delta_zoom = 0.1
+        self.delta_zoom = delta_zoom
 
         self.shift = INIT_SHIFT
         self.shifting = False
@@ -370,7 +370,8 @@ VELOCITY_SHOW_EPS = 0.001
 
 INIT_SCALING = -7
 INIT_SHIFT = pg.Vector2(6.43, 0)
-VIEWPORT = Viewport()
+delta_zoom = 0.25
+VIEWPORT = Viewport(delta_zoom=delta_zoom)
 
 MINIMAL_DRAWING_RADIUS = 1
 
