@@ -420,9 +420,9 @@ MOON = PlanetStatic('Moon', (W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 
 ROCKET_RADIUS = 50
 STARTING_POSITION = (EARTH.coordinates[0] - (EARTH.radius * SCALE + ROCKET_RADIUS * SCALE), EARTH.coordinates[1])
 # masses including fuel, payload, etc.
-STAGE_MASSES = [241_000, 65_000, 15_000]
+STAGE_MASSES = [241_000, 65_000, 36_600]
 # fuel mass in kg
-STAGE_FUEL = [171_800, 32_600, 12_375]
+STAGE_FUEL = [171_800, 32_600, 18_200]
 # thrust performance in vacuum without additional mass in newtons
 STAGE_ENGINES_SPEED = [2_961_600, 789_100, 161_170]
 
