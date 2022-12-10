@@ -325,6 +325,7 @@ RESOLUTION = W, H = (1600, 900)
 SCREEN = pg.display.set_mode(RESOLUTION)
 SCREEN_SURF = pg.Surface(RESOLUTION)
 ICON = pg.image.load(os.path.join(IMG_PATH, "icon.png"))
+pg.display.set_caption("Chang'e 1 by malosol'nie ogurchiki")
 pg.display.set_icon(ICON)
 
 CLOCK = pg.time.Clock()
