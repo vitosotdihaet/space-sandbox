@@ -293,7 +293,7 @@ def draw_arrow(pos, vec, length, color=(255, 255, 255), width=5):
     pg.draw.polygon(SCREEN, color, seq, width)
 
 
-def draw_that_thing(rect, vec, bg_color=(240, 240, 240), fg_color=(20, 20, 20), arrow_color=(255, 255, 255)):
+def draw_compass(rect, vec, bg_color=(240, 240, 240), fg_color=(20, 20, 20), arrow_color=(255, 255, 255)):
     nr = pg.Rect(rect.left + 5, rect.top + 5, rect.width - 10, rect.height - 10)
     pg.draw.rect(SCREEN, bg_color, rect, border_radius=50)
     pg.draw.rect(SCREEN, fg_color, nr, border_radius=45)
@@ -530,7 +530,7 @@ while True:
     rocket_velocity_ost.update(f'{ROCKET.velocity.length():.1f} m/s')
     rocket_velocity_ost.blit()
 
-    draw_that_thing(pg.Rect(COMPASS_COORDS), ROCKET.velocity, arrow_color=VELOCITY_COLOR)
+    draw_compass(pg.Rect(COMPASS_COORDS), ROCKET.velocity, arrow_color=VELOCITY_COLOR)
     c = pg.Vector2(COMPASS_COORDS[0] + COMPASS_COORDS[2] / 2, COMPASS_COORDS[1] + COMPASS_COORDS[3] / 2)
     draw_arrow(c, current_acceleration, COMPASS_COORDS[2] / 3, color=ACCELERATION_COLOR)
 
