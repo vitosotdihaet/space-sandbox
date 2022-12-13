@@ -6,11 +6,14 @@ math   - smoothing function for zooming
 time   - timer on screen
 sys    - stopping the application
 os     - resources for graphics 
+
+matplotlib - saving graphs
 '''
 
 
 import pygame as pg
 import pygame_widgets as pw
+import matplotlib.pyplot as plt
 
 import math
 import time
@@ -242,10 +245,12 @@ def event_handler(event):
 
     match event.type:
         case pg.QUIT:
+            save_graphs()
             sys.exit()
         case pg.KEYDOWN:
             match event.key:
                 case pg.K_ESCAPE:
+                    save_graphs()
                     sys.exit()
                 case pg.K_SPACE:
                     if SPEED_SLIDER.value != 0:
@@ -281,6 +286,22 @@ def event_handler(event):
             if VIEWPORT.shifting:
                 VIEWPORT.shift += pg.Vector2(event.rel) * VIEWPORT.scaling
                 VIEWPORT.update(0)
+
+
+def save_graphs():
+    fig, axs = plt.subplots(2)
+    axs[0].plot(time_as_x, acc_as_y)
+    axs[1].plot(time_as_x, vel_as_y)
+
+    axs[1].set_xlabel('Elapsed real time')
+
+    axs[0].set_ylabel('Acceleration m/s^2')
+    axs[1].set_ylabel('Velocity m/s')
+
+    if READ_MOVES:
+        fig.savefig(f'plot_{read_from.name}.png')
+    else:
+        fig.savefig(f'plot_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())[:-3]}.png')
 
 
 def draw_arrow(pos, vec, length, color=(255, 255, 255), width=5):
@@ -396,6 +417,11 @@ if READ_MOVES:  # Enter name of flight here
     read_from = open('flight_2022-11-27_15-06-27.txt')
     read_moves = read_from.readlines()
 
+# * Saving graphs
+time_as_x = []
+vel_as_y = []
+acc_as_y = []
+
 # * Physics
 # to have real life time speed, you need to set BASE_SPEED to 2.378e-3
 # the lower the speed, the more accurate the result, (speed determines how often calculations happen)
@@ -487,6 +513,11 @@ while True:
                 last_moves = moves.copy()
 
             ROCKET.move(moves)
+        
+        # if int(real_elapsed_time) % 10 == 0:
+        time_as_x.append(real_elapsed_time)
+        vel_as_y.append(ROCKET.velocity.length())
+        acc_as_y.append(ROCKET.acceleration.length())
 
     current_acceleration /= CALC_PER_FRAME
 
