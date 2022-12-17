@@ -107,8 +107,8 @@ class Entity:  # * all the input parameters are real, except coordinates
         self.coordinates = VIEWPORT.scale(self.position * SCALE)
         if self.has_trail:
             pg.draw.lines(SCREEN, self.color, False, self.trail)
-        pg.draw.circle(SCREEN, self.color, self.coordinates, max(
-            MINIMAL_DRAWING_RADIUS, self.radius / VIEWPORT.scaling * SCALE))
+        pg.draw.circle(SCREEN, self.color, self.coordinates,
+                       max(MINIMAL_DRAWING_RADIUS, self.radius / VIEWPORT.scaling * SCALE))
 
 
 class Rocket(Entity):
@@ -203,7 +203,7 @@ class OnScreenText:
 
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
-    if type(e1) == Rocket:
+    if isinstance(e1, Rocket):
         e1.position = e2.position.copy() + d * (1 + COLLISION_EPS)
         if d.length() <= e1.radius + e2.radius:
             e1.velocity = e2.velocity.copy()
@@ -430,7 +430,7 @@ acc_as_y = []
 SPEED_CONST = 2.378e-3
 BASE_SPEED = SPEED_CONST
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
-                      min=BASE_SPEED, max=1 * 10, step=0.01 * 10, initial=BASE_SPEED,
+                      min=BASE_SPEED, max=1 * 10, step=0.01, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
 CALC_PER_FRAME = 5
