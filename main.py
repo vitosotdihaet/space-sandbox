@@ -137,7 +137,7 @@ class Rocket(Entity):
                 self.acceleration.x = 1/2**0.5 * dx
                 self.acceleration.y = 1/2**0.5 * dy
 
-            self.acceleration *= self.stage_engine_thrust[self.stage]/self.mass
+            self.acceleration *= self.stage_engine_thrust[self.stage]/(self.mass + 1)
 
         if self.acceleration != pg.Vector2(0, 0):
             temp = self.stage_delta_fuel_burn[self.stage] * dt
@@ -403,7 +403,7 @@ MINIMAL_DRAWING_RADIUS = 1
 TRAILSIZE = 100
 
 # True if you want to save your flight
-SAVE_MOVES = True
+SAVE_MOVES = False
 save_to = open('main.py')
 if SAVE_MOVES:
     save_to = open(f'flight_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}.txt', 'w')
@@ -416,7 +416,7 @@ read_from = open('main.py')
 read_moves = []
 read_off = 0
 if READ_MOVES:  # Enter name of flight here
-    read_from = open('flight_2022-11-27_15-06-27.txt')
+    read_from = open('flight_2022-12-10_12-04-15.txt')
     read_moves = read_from.readlines()
 
 # * Saving graphs
