@@ -420,6 +420,7 @@ if READ_MOVES:  # Enter name of flight here
     read_moves = read_from.readlines()
 
 # * Saving graphs
+SAVE_GRAPHS = False
 time_as_x = []
 vel_as_y = []
 acc_as_y = []
@@ -522,10 +523,10 @@ while True:
 
             ROCKET.move(moves)
         
-        # if int(real_elapsed_time) % 10 == 0:
-        time_as_x.append(real_elapsed_time)
-        vel_as_y.append(ROCKET.velocity.length())
-        acc_as_y.append(ROCKET.acceleration.length())
+        if SAVE_GRAPHS:
+            time_as_x.append(real_elapsed_time)
+            vel_as_y.append(ROCKET.velocity.length())
+            acc_as_y.append(ROCKET.acceleration.length())
 
     current_acceleration /= CALC_PER_FRAME
 
