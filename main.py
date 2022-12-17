@@ -112,10 +112,11 @@ class Entity:  # * all the input parameters are real, except coordinates
 
 
 class Rocket(Entity):
-    def __init__(self, name, coordinates, init_velocity, radius, color, stage_masses, stage_fuel, stage_engine_thrust, has_trail=True):
+    def __init__(self, name, coordinates, init_velocity, radius, color, stage_masses, stage_fuel, stage_delta_fuel_burn, stage_engine_thrust, has_trail=True):
         super().__init__(name, coordinates, init_velocity, radius, stage_masses[0], color, has_trail)
         self.stage_masses = stage_masses
         self.stage_fuel = stage_fuel
+        self.stage_delta_fuel_burn = stage_delta_fuel_burn
         self.stage_engine_thrust = stage_engine_thrust
         self.stage = 0
 
@@ -135,11 +136,11 @@ class Rocket(Entity):
             if abs(dx) == abs(dy) == 1:  # Check for diagonal movement
                 self.acceleration.x = 1/2**0.5 * dx
                 self.acceleration.y = 1/2**0.5 * dy
-        
-            self.acceleration *= (self.stage_engine_thrust[self.stage] - self.mass) / 50000
-        
+
+            self.acceleration *= self.stage_engine_thrust[self.stage]/self.mass
+
         if self.acceleration != pg.Vector2(0, 0):
-            temp = min(1000, self.stage_fuel[self.stage] + 1) * dt
+            temp = self.stage_delta_fuel_burn[self.stage] * dt
             self.mass = max(0, self.mass - temp)
             self.stage_fuel[self.stage] = max(0, self.stage_fuel[self.stage] - temp)
             self.stage_masses[self.stage] = max(0, self.stage_masses[self.stage] - temp)
@@ -288,22 +289,6 @@ def event_handler(event):
                 VIEWPORT.update(0)
 
 
-def save_graphs():
-    fig, axs = plt.subplots(2)
-    axs[0].plot(time_as_x, acc_as_y)
-    axs[1].plot(time_as_x, vel_as_y)
-
-    axs[1].set_xlabel('Elapsed real time')
-
-    axs[0].set_ylabel('Acceleration m/s^2')
-    axs[1].set_ylabel('Velocity m/s')
-
-    if READ_MOVES:
-        fig.savefig(f'plot_{read_from.name}.png')
-    else:
-        fig.savefig(f'plot_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())[:-3]}.png')
-
-
 def draw_arrow(pos, vec, length, color=(255, 255, 255), width=5):
     l = vec.length()
     if l > VELOCITY_SHOW_EPS:
@@ -323,6 +308,23 @@ def draw_compass(rect, vec, bg_color=(240, 240, 240), fg_color=(20, 20, 20), arr
     arrow_length = (nr.width / 2) * 9 / 10
     
     draw_arrow(center, vec, arrow_length, arrow_color, ARROW_WIDTH)
+
+
+def save_graphs():
+    if not SAVE_GRAPHS: return
+    fig, axs = plt.subplots(2)
+    axs[0].plot(time_as_x, acc_as_y)
+    axs[1].plot(time_as_x, vel_as_y)
+
+    axs[1].set_xlabel('Elapsed real time')
+
+    axs[0].set_ylabel('Acceleration m/s^2')
+    axs[1].set_ylabel('Velocity m/s')
+
+    if READ_MOVES:
+        fig.savefig(f'plot_{read_from.name}.png')
+    else:
+        fig.savefig(f'plot_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())[:-3]}.png')
 
 
 pg.init()
@@ -435,7 +437,7 @@ CALC_PER_FRAME = 5
 
 SCALE = 1/1000000
 G = 6.67e-11
-EPS = 1e2
+EPS = 1e-1
 COLLISION_EPS = 1e-10
 
 MAX_VELOCITY = 3e8
@@ -451,9 +453,15 @@ STAGE_MASSES = [241_000, 65_000, 36_600]
 STAGE_FUEL = [171_800, 32_600, 18_200]
 # thrust performance in vacuum without additional mass in newtons
 STAGE_ENGINES_SPEED = [2_961_600, 789_100, 161_170]
+# stage fuel burning time
+STAGE_BURNING_TIME = [148, 115, 475]
+# delta fuel burning for each stage
+STAGE_DELTA_FUEL_BURN = []
+for f, t in zip(STAGE_FUEL, STAGE_BURNING_TIME):
+    STAGE_DELTA_FUEL_BURN.append(f/t)
 
 ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
-                (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_ENGINES_SPEED)
+                (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_DELTA_FUEL_BURN, STAGE_ENGINES_SPEED)
 
 entities = [EARTH, MOON, ROCKET]
 
