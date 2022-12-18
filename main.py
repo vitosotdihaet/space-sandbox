@@ -93,7 +93,7 @@ class Entity:  # * all the input parameters are real, except coordinates
                 self.acceleration = calculate_gravitational_force(self, e, d)
 
         self.velocity += self.acceleration * dt
-        self.position += self.velocity * dt  # type: ignore
+        self.position += self.velocity * dt
         current_acceleration += self.acceleration
         self.acceleration = pg.Vector2(0, 0)
 
