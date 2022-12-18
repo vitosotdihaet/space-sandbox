@@ -78,7 +78,7 @@ class Entity:  # * all the input parameters are real, except coordinates
 
     def update(self):
         global current_acceleration
-        if type(self) == PlanetStatic:
+        if isinstance(self, PlanetStatic):
             self.coordinates = VIEWPORT.scale(self.position * SCALE)
             return
 
@@ -119,6 +119,7 @@ class Rocket(Entity):
         self.stage_delta_fuel_burn = stage_delta_fuel_burn
         self.stage_engine_thrust = stage_engine_thrust
         self.stage = 0
+        self.fuel = self.stage_fuel[self.stage]
 
     def move(self, directions):
         # TODO fix
@@ -126,8 +127,9 @@ class Rocket(Entity):
             return
 
         self.acceleration = pg.Vector2(0, 0)
+        temp = self.stage_delta_fuel_burn[self.stage] * dt
         
-        if self.stage_fuel[self.stage] > 0:
+        if self.fuel > 0:
             for e in directions:
                 self.acceleration += e
         
@@ -137,20 +139,20 @@ class Rocket(Entity):
                 self.acceleration.x = 1/2**0.5 * dx
                 self.acceleration.y = 1/2**0.5 * dy
 
-            self.acceleration *= self.stage_engine_thrust[self.stage]/(self.mass + 1)
+            self.acceleration *= self.stage_engine_thrust[self.stage] / (self.mass + 1)
 
-        if self.acceleration != pg.Vector2(0, 0):
-            temp = self.stage_delta_fuel_burn[self.stage] * dt
+        if self.acceleration != pg.Vector2(0):
             self.mass = max(0, self.mass - temp)
-            self.stage_fuel[self.stage] = max(0, self.stage_fuel[self.stage] - temp)
-            self.stage_masses[self.stage] = max(0, self.stage_masses[self.stage] - temp)
+            self.fuel = max(0, self.fuel - temp)
             # Uncomment to change stages when fuel is 0
             # if self.stage_fuel[self.stage] <= 0:
             #     self.change_stage()
 
     def change_stage(self):
-        self.stage = min(self.stage + 1, len(self.stage_masses) - 1)
-        self.mass = self.stage_masses[self.stage]
+        if self.stage + 1 < len(self.stage_masses):
+            self.stage += 1
+            self.mass = self.stage_masses[self.stage]
+            self.fuel = self.stage_fuel[self.stage]
 
 
 class Planet(Entity):
@@ -262,6 +264,8 @@ def event_handler(event):
                     SPEED_SLIDER.value = min(SPEED_SLIDER.value + SPEED_SLIDER.step * 2, SPEED_SLIDER.max)
                 case pg.K_LEFTBRACKET:
                     SPEED_SLIDER.value = max(SPEED_SLIDER.value - SPEED_SLIDER.step * 2, SPEED_SLIDER.min)
+                case pg.K_r:
+                    restart()
                 case pg.K_s:
                     VIEWPORT.shift = pg.Vector2(0, 0)
                     VIEWPORT.update(0)
@@ -325,6 +329,13 @@ def save_graphs():
         fig.savefig(f'plot_{read_from.name}.png')
     else:
         fig.savefig(f'plot_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())[:-3]}.png')
+
+
+def restart():
+    global ROCKET, real_elapsed_time
+    real_elapsed_time = 0
+    ROCKET.__init__('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
+                    (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_DELTA_FUEL_BURN, STAGE_ENGINES_SPEED)
 
 
 pg.init()
@@ -403,7 +414,7 @@ MINIMAL_DRAWING_RADIUS = 1
 TRAILSIZE = 100
 
 # True if you want to save your flight
-SAVE_MOVES = False
+SAVE_MOVES = True
 save_to = open('main.py')
 if SAVE_MOVES:
     save_to = open(f'flight_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}.txt', 'w')
@@ -560,7 +571,7 @@ while True:
     stage_ost.blit()
 
     fuel_ost.blit()
-    fuel_at_stage_ost.update(f'{ROCKET.stage_fuel[ROCKET.stage]:.1f} l')
+    fuel_at_stage_ost.update(f'{ROCKET.fuel:.1f} l')
     fuel_at_stage_ost.blit()
 
     acceleration_ost.blit()
