@@ -69,7 +69,7 @@ class Entity:  # * all the input parameters are real, except coordinates
 
         self.color = color
 
-        if has_trail and type(self) != PlanetStatic:
+        if has_trail and not isinstance(self, PlanetStatic):
             self.has_trail = True
             self.trail = deque([VIEWPORT.scale(self.coordinates), VIEWPORT.scale(self.coordinates)], maxlen=TRAILSIZE)
             self.trail_real = deque([self.position * SCALE, self.position * SCALE], maxlen=TRAILSIZE)
@@ -81,7 +81,7 @@ class Entity:  # * all the input parameters are real, except coordinates
         if isinstance(self, PlanetStatic):
             self.coordinates = VIEWPORT.scale(self.position * SCALE)
             return
-
+        
         for e in entities:  # Iterate over all the entities to calculate physics
             if e == self:
                 continue
@@ -90,7 +90,7 @@ class Entity:  # * all the input parameters are real, except coordinates
             if d.length() < self.radius + e.radius + EPS:
                 calculate_collision(self, e, d)
             else:
-                self.acceleration = calculate_gravitational_force(self, e, d)
+                self.acceleration = calculate_gravitational_acceleration(self, e, d)
 
         self.velocity += self.acceleration * dt
         self.position += self.velocity * dt
@@ -128,11 +128,11 @@ class Rocket(Entity):
 
         self.acceleration = pg.Vector2(0, 0)
         temp = self.stage_delta_fuel_burn[self.stage] * dt
-        
+
         if self.fuel > 0:
             for e in directions:
                 self.acceleration += e
-        
+
             dx = self.acceleration.x
             dy = self.acceleration.y
             if abs(dx) == abs(dy) == 1:  # Check for diagonal movement
@@ -144,8 +144,8 @@ class Rocket(Entity):
         if self.acceleration != pg.Vector2(0):
             self.mass = max(0, self.mass - temp)
             self.fuel = max(0, self.fuel - temp)
-            # Uncomment to change stages when fuel is 0
-            # if self.stage_fuel[self.stage] <= 0:
+            ## Uncomment to change stages when fuel is 0
+            # if self.fuel <= 0:
             #     self.change_stage()
 
     def change_stage(self):
@@ -212,7 +212,7 @@ def calculate_collision(e1, e2, d):
 
 
 # Changes the acceleration of entity1
-def calculate_gravitational_force(e1, e2, d):
+def calculate_gravitational_acceleration(e1, e2, d):
     r = d.length()
     a = e1.acceleration
     f = d * (-G * e2.mass / (r * r * r))
@@ -414,7 +414,7 @@ MINIMAL_DRAWING_RADIUS = 1
 TRAILSIZE = 100
 
 # True if you want to save your flight
-SAVE_MOVES = True
+SAVE_MOVES = False
 save_to = open('main.py')
 if SAVE_MOVES:
     save_to = open(f'flight_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}.txt', 'w')
@@ -470,7 +470,7 @@ STAGE_BURNING_TIME = [148, 115, 475]
 # delta fuel burning for each stage
 STAGE_DELTA_FUEL_BURN = []
 for f, t in zip(STAGE_FUEL, STAGE_BURNING_TIME):
-    STAGE_DELTA_FUEL_BURN.append(f/t)
+    STAGE_DELTA_FUEL_BURN.append(f/(t + t * 30 / 148))
 
 ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
                 (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_DELTA_FUEL_BURN, STAGE_ENGINES_SPEED)
@@ -494,7 +494,6 @@ while True:
     current_acceleration = pg.Vector2(0, 0)
     if dt != 0:
         for _ in range(CALC_PER_FRAME):
-            ROCKET.update()
             pressed = []
 
             if READ_MOVES:
@@ -533,6 +532,7 @@ while True:
                 last_moves = moves.copy()
 
             ROCKET.move(moves)
+            ROCKET.update()
         
         if SAVE_GRAPHS:
             time_as_x.append(real_elapsed_time)
