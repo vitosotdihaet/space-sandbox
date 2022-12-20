@@ -6,7 +6,7 @@ Chang'e is a series of Chinese Moon-exploring missions. The goal of this branch 
 
 `RMB` - Navigate
 
-`S` - Snap back to initial center
+`S` - Snap to Earth's center
 
 `Scroll Up/Down` - Zoom in/out (currently zooms to initial center)
 
