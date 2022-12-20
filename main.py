@@ -470,7 +470,7 @@ STAGE_BURNING_TIME = [148, 115, 475, 300]
 # delta fuel burning for each stage
 STAGE_DELTA_FUEL_BURN = []
 for f, t in zip(STAGE_FUEL, STAGE_BURNING_TIME):
-    STAGE_DELTA_FUEL_BURN.append(f/(t))
+    STAGE_DELTA_FUEL_BURN.append(f/(t + t * (50/148)))
 
 ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
                 (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_DELTA_FUEL_BURN, STAGE_ENGINES_SPEED)
