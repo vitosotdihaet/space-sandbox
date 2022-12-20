@@ -460,17 +460,17 @@ MOON = PlanetStatic('Moon', (W/2 + 405, H/2), 1737 * 1000, 7.347e22, (200, 200, 
 ROCKET_RADIUS = 50
 STARTING_POSITION = (EARTH.coordinates[0] - (EARTH.radius * SCALE + ROCKET_RADIUS * SCALE), EARTH.coordinates[1])
 # masses including fuel, payload, etc.
-STAGE_MASSES = [241_000, 65_000, 36_600]
+STAGE_MASSES = [241_000, 65_000, 36_600, 12_000]
 # fuel mass in kg
-STAGE_FUEL = [171_800, 32_600, 18_200]
+STAGE_FUEL = [171_800, 32_600, 18_200, 4_000]
 # thrust performance in vacuum without additional mass in newtons
-STAGE_ENGINES_SPEED = [2_961_600, 789_100, 161_170]
+STAGE_ENGINES_SPEED = [2_961_600, 789_100, 161_170, 20_500]
 # stage fuel burning time
-STAGE_BURNING_TIME = [148, 115, 475]
+STAGE_BURNING_TIME = [148, 115, 475, 300]
 # delta fuel burning for each stage
 STAGE_DELTA_FUEL_BURN = []
 for f, t in zip(STAGE_FUEL, STAGE_BURNING_TIME):
-    STAGE_DELTA_FUEL_BURN.append(f/(t + t * 30 / 148))
+    STAGE_DELTA_FUEL_BURN.append(f/(t * 2))
 
 ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), ROCKET_RADIUS,
                 (255, 100, 255), STAGE_MASSES, STAGE_FUEL, STAGE_DELTA_FUEL_BURN, STAGE_ENGINES_SPEED)
@@ -537,7 +537,7 @@ while True:
         if SAVE_GRAPHS:
             time_as_x.append(real_elapsed_time)
             vel_as_y.append(ROCKET.velocity.length())
-            acc_as_y.append(ROCKET.acceleration.length())
+            acc_as_y.append(current_acceleration.length() / CALC_PER_FRAME)
 
     current_acceleration /= CALC_PER_FRAME
 
