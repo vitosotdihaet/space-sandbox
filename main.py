@@ -462,7 +462,7 @@ STARTING_POSITION = (EARTH.coordinates[0] - (EARTH.radius * SCALE + ROCKET_RADIU
 # masses including fuel, payload, etc.
 STAGE_MASSES = [241_000, 65_000, 36_600, 12_000]
 # fuel mass in kg
-STAGE_FUEL = [171_800, 32_600, 18_200, 4_000]
+STAGE_FUEL = [171_800, 32_600, 18_200, 9_500]
 # thrust performance in vacuum without additional mass in newtons
 STAGE_ENGINES_SPEED = [2_961_600, 789_100, 161_170, 20_500]
 # stage fuel burning time
