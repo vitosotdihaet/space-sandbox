@@ -4,3 +4,4 @@
 *.mov
 *.png
 !plot-real-mission-sim.png
+!plot-ksp-mission-sim.png
