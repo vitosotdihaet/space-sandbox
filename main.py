@@ -22,22 +22,21 @@ from collections import deque
 
 
 class Viewport:
-    def __init__(self):
-        self.scaling = INIT_SCALING
-        self.zoom_level = INIT_SCALING
+    def __init__(self, init_scaling=1, init_shift=pg.Vector2(0), delta_zoom=0.1):
+        self.scaling = 1
+        self.zoom_level = init_scaling
         self.delta_zoom = 0.1
 
-        self.shift = INIT_SHIFT
+        self.shift = init_shift
         self.shifting = False
 
-    def scale(self, coord, mouse_pos=pg.Vector2(0, 0)):
+    def scale(self, coord):
         center = pg.Vector2(W/2, H/2) - self.shift
         return (coord - center) / self.scaling + center + self.shift
 
     def unscale(self, coord):
         coord = coord - self.shift
-        center = pg.Vector2(W/2, H/2) - self.shift
-        return (coord - center) * self.scaling + center
+        return pg.Vector2((coord[0] - W/2) * self.scaling + W/2, (coord[1] - H/2) * self.scaling + H/2)
 
     def update(self, zoom):
         self.zoom_level += zoom * self.delta_zoom
@@ -68,7 +67,7 @@ class Entity:  # * all the input parameters are real, except coordinates
 
         self.color = color
 
-        if has_trail and type(self) != PlanetStatic:
+        if has_trail and not isinstance(self, PlanetStatic):
             self.has_trail = True
             self.trail = deque([VIEWPORT.scale(self.coordinates), VIEWPORT.scale(self.coordinates)], maxlen=TRAILSIZE)
             self.trail_real = deque([self.position * SCALE, self.position * SCALE], maxlen=TRAILSIZE)
@@ -76,7 +75,7 @@ class Entity:  # * all the input parameters are real, except coordinates
             self.has_trail = False
 
     def update(self):
-        if type(self) == PlanetStatic:
+        if isinstance(self, PlanetStatic):
             self.coordinates = VIEWPORT.scale(self.position * SCALE)
             return
 
@@ -109,15 +108,17 @@ class Entity:  # * all the input parameters are real, except coordinates
 
 
 class Rocket(Entity):
-    def __init__(self, name, coordinates, init_velocity, radius, mass, color, has_trail=True):
+    def __init__(self, name, coordinates, init_velocity, radius, mass, color, thrust, has_trail=True):
         super().__init__(name, coordinates, init_velocity, radius, mass, color, has_trail)
+        self.thrust = thrust
 
     def move(self, directions):
         # TODO fix
-        if self.velocity.length() > MAX_ROCKET_VELOCITY:
+        if self.velocity.length() > MAX_VELOCITY:
             return
 
         self.acceleration = pg.Vector2(0, 0)
+
         for e in directions:
             self.acceleration += e
 
@@ -127,7 +128,7 @@ class Rocket(Entity):
             self.acceleration.x = 1/2**0.5 * dx
             self.acceleration.y = 1/2**0.5 * dy
 
-        self.acceleration *= ROCKET_ACCEL
+        self.acceleration *= self.thrust
 
 
 class Planet(Entity):
@@ -206,21 +207,10 @@ class Button:
 
 # Checks if e1 collides with e2 and changes its parameters
 def calculate_collision(e1, e2, d):
-    # TODO? change biggest planet mass, radius, etc. if two collided
-    if type(e1) == Rocket:
+    if isinstance(e1, Rocket):
         e1.position = e2.position.copy() + d * (1 + COLLISION_EPS)
         if d.length() <= e1.radius + e2.radius:
             e1.velocity = e2.velocity.copy()
-    elif type(e2) == Rocket:
-        return
-    elif type(e1) != PlanetStatic and e1.mass < e2.mass:
-        e1.velocity = e2.velocity
-        e1.position = e2.position
-    # TODO handle this case
-    # elif e1.mass == e2.mass:
-    #     pass
-    else:
-        return
 
 
 # Changes the acceleration of entity1
@@ -239,7 +229,7 @@ def change_showing_info(pos):
     to_show = None
     max_distance = INFO_DISTANCE
     for e in entities:
-        if type(e) != Rocket:
+        if not isinstance(e, Rocket):
             current_distance = e.coordinates.distance_to(pos) - e.radius * SCALE / VIEWPORT.scaling
             if current_distance < max_distance:
                 max_distance = current_distance
@@ -364,7 +354,7 @@ info_ost = OnScreenText('', FONTS, (W/2, 25), color=(240, 240, 250))
 
 INIT_SCALING = 1
 INIT_SHIFT = pg.Vector2(0, 0)
-VIEWPORT = Viewport()
+VIEWPORT = Viewport(init_scaling=INIT_SCALING, init_shift=INIT_SHIFT)
 
 MINIMAL_DRAWING_RADIUS = 1
 
@@ -383,7 +373,7 @@ SPEED_CONST = 2.378e-3
 BASE_SPEED = SPEED_CONST
 SPEED = BASE_SPEED
 SPEED_SLIDER = Slider(SCREEN, 20, 50, 8, H - 100,
-                      min=BASE_SPEED, max=100, step=1, initial=BASE_SPEED,
+                      min=BASE_SPEED, max=100, step=0.1, initial=BASE_SPEED,
                       vertical=True, colour=(255, 255, 255), handleColour=(255, 150, 30))
 
 CALC_PER_FRAME = 5
@@ -393,16 +383,14 @@ G = 6.67e-11
 INTERFERENCE_EPS = 1e3
 COLLISION_EPS = 1e-10
 
-# TODO Needs tweaking and rethinking
 ROCKET_ACCEL = 5
-MAX_ROCKET_VELOCITY = 3e8
-
+MAX_VELOCITY = 3e8
 
 EARTH = PlanetStatic('Earth', (W/2, H/2), 6371 * 1000, 5.972e24, (100, 100, 255))
 MOON = PlanetDynamic('Moon', (W/2 - 405, H/2), (0, -1023), 1737 * 1000, 7.347e22, (200, 200, 200))
 
 STARTING_POSITION = (EARTH.coordinates[0] + EARTH.radius * SCALE + 100, EARTH.coordinates[1])
-ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), 50, 2000, (255, 100, 255))
+ROCKET = Rocket('Rocket', STARTING_POSITION, (0, 0), 50, 241000, (255, 100, 255), 1170)
 
 entities = [EARTH, MOON, ROCKET]
 
