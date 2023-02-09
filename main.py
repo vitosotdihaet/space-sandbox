@@ -246,6 +246,7 @@ def event_handler(event):
     global VIEWPORT
     global LAUNCH_FROM
     global LMB_MODE
+    Я Виталик, создаю глобальные переменные, потому что я могу... Я не хочу писать лишних аргументов в функцию
 
     match event.type:
         case pg.QUIT:
